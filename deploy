@@ -23,6 +23,9 @@ import yaml
 import argparse
 import subprocess
 
+OC_CMD = '/var/b/shared/bin/origin/v3.6.1/oc'
+OC_CMD = 'oc'
+OC_CMD = '/var/b/shared/bin/origin/v4.3.0-nightly-20191213/oc'
 
 def main():
     args = parse_args()
@@ -39,7 +42,7 @@ def main():
 
         if args.start:
             print("Starting:")
-            out = subprocess.run(['oc', 'start-build',
+            out = subprocess.run([OC_CMD, 'start-build',
                                   # hack the name; should extract from manifest
                                   f'{args.prefix}fedora-coreos-pipeline'],
                                  check=True, stdout=subprocess.PIPE,
@@ -55,11 +58,23 @@ def main():
 
         delete_developer_resources(args, resources)
 
+def runcmd(cmd: list, **kwargs: int) -> subprocess.CompletedProcess:
+    try:
+        print(f'Running command: {cmd}')
+        cp = subprocess.run(cmd, **kwargs)
+    except subprocess.CalledProcessError as e:
+        eprint('Running command returned bad exitcode')
+        eprint(f'COMMAND: {cmd}')
+        eprint(f' STDOUT: {e.stdout}')
+        eprint(f' STDERR: {e.stderr}')
+        raise e
+    return cp # subprocess.CompletedProcess
+
 
 def targeting_official_namespace():
-    ctx_name = subprocess.check_output(['oc', 'config', 'current-context'],
+    ctx_name = subprocess.check_output([OC_CMD, 'config', 'current-context'],
                                        encoding='utf-8').strip()
-    cfg = yaml.safe_load(subprocess.check_output(['oc', 'config', 'view'],
+    cfg = yaml.safe_load(subprocess.check_output([OC_CMD, 'config', 'view'],
                                                  encoding='utf-8'))
     ctx = [c['context'] for c in cfg['contexts'] if c['name'] == ctx_name]
     assert len(ctx) == 1, f"Found {len(ctx)} contexts named '{ctx_name}'"
@@ -153,7 +168,7 @@ def process_template(args):
     print()
 
     resources = subprocess.check_output(
-        ['oc', 'process', '--filename', 'manifests/pipeline.yaml'] + params)
+        [OC_CMD, 'process', '--filename', 'manifests/pipeline.yaml'] + params)
     return json.loads(resources)
 
 
@@ -164,7 +179,7 @@ def update_resources(args, resources):
             action = resource_action(resource)
             if action == 'skip':
                 continue
-            out = subprocess.run(['oc', action, '--filename', '-'],
+            out = subprocess.run([OC_CMD, action, '--filename', '-'],
                                  input=json.dumps(resource), encoding='utf-8',
                                  check=True, stdout=subprocess.PIPE)
             print(f"  {out.stdout.strip()}")
@@ -189,10 +204,9 @@ def resource_action(resource):
 
 
 def resource_exists(resource):
-    return subprocess.call(['oc', 'get', resource['kind'],
-                            resource['metadata']['name']],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL) == 0
+    cp = runcmd([OC_CMD, 'get', resource['kind'],
+                            resource['metadata']['name']])
+    return cp.returncode == 0
 
 
 def delete_developer_resources(args, resources):
@@ -200,7 +214,7 @@ def delete_developer_resources(args, resources):
     print("Deleting:")
     for resource in resources['items']:
         if resource['metadata']['name'].startswith(args.prefix):
-            out = subprocess.run(['oc', 'delete', '--filename', '-'],
+            out = subprocess.run([OC_CMD, 'delete', '--filename', '-'],
                                  input=json.dumps(resource), encoding='utf-8',
                                  check=True, stdout=subprocess.PIPE)
             print(f"  {out.stdout.strip()}")
