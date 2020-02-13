@@ -60,7 +60,7 @@ podTemplate(cloud: 'openshift', label: pod_label, yaml: pod) {
         // future, we'll probably want this either part of the cosa image, or
         // in a derivative of cosa for pipeline needs.
         utils.shwrap("""
-        git clone --depth=1 https://github.com/coreos/fedora-coreos-releng-automation /var/tmp/fcos-releng
+        git clone --depth=1 -b dusty-importer https://github.com/coreos/fedora-coreos-releng-automation /var/tmp/fcos-releng
         """)
 
         // Buildprep for the build we are interested in
@@ -82,35 +82,35 @@ podTemplate(cloud: 'openshift', label: pod_label, yaml: pod) {
             }
         }
 
-        if (params.AWS_REPLICATION == 'true') {
-            // Replicate the newly uploaded AMI to other regions. Intentionally
-            // split out from the 'Upload AWS' stage to allow for tests to be added
-            // at a later date before replicating said image.
-            //
-            // We have to re-run the coreos-meta-translator as aws-replicate
-            // only modifies the meta.json
-            stage('Replicate AWS AMI') {
-                s3_stream_dir = "${s3_bucket}/prod/streams/${params.STREAM}"
-                utils.shwrap("""
-                export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-                cosa aws-replicate --build=${params.VERSION} --log-level=INFO
-                /var/tmp/fcos-releng/coreos-meta-translator/trans.py --build-id ${params.VERSION} --workdir .
-                cosa buildupload --build=${params.VERSION} --skip-builds-json s3 --acl=public-read ${s3_stream_dir}/builds
-                """)
-            }
-        }
+      //if (params.AWS_REPLICATION == 'true') {
+      //    // Replicate the newly uploaded AMI to other regions. Intentionally
+      //    // split out from the 'Upload AWS' stage to allow for tests to be added
+      //    // at a later date before replicating said image.
+      //    //
+      //    // We have to re-run the coreos-meta-translator as aws-replicate
+      //    // only modifies the meta.json
+      //    stage('Replicate AWS AMI') {
+      //        s3_stream_dir = "${s3_bucket}/prod/streams/${params.STREAM}"
+      //        utils.shwrap("""
+      //        export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
+      //        cosa aws-replicate --build=${params.VERSION} --log-level=INFO
+      //        /var/tmp/fcos-releng/coreos-meta-translator/trans.py --build-id ${params.VERSION} --workdir .
+      //        cosa buildupload --build=${params.VERSION} --skip-builds-json s3 --acl=public-read ${s3_stream_dir}/builds
+      //        """)
+      //    }
+      //}
 
-        stage('Publish') {
-          // Run plume to publish official builds; This will handle modifying
-          // object ACLs, modifying AMI image attributes,
-          // and creating/modifying the releases.json metadata index
-          utils.shwrap("""
-          export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-          plume release --distro fcos \
-              --version ${params.VERSION} \
-              --stream ${params.STREAM} \
-              --bucket ${s3_bucket}
-          """)
-        }
+     // stage('Publish') {
+     //   // Run plume to publish official builds; This will handle modifying
+     //   // object ACLs, modifying AMI image attributes,
+     //   // and creating/modifying the releases.json metadata index
+     //   utils.shwrap("""
+     //   export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
+     //   plume release --distro fcos \
+     //       --version ${params.VERSION} \
+     //       --stream ${params.STREAM} \
+     //       --bucket ${s3_bucket}
+     //   """)
+     // }
     }}
 }}

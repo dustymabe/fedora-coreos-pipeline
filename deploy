@@ -23,6 +23,10 @@ import yaml
 import argparse
 import subprocess
 
+OC_CMD = '/var/b/shared/bin/origin/v3.6.1/oc'
+OC_CMD = 'oc'
+OC_CMD = '/var/b/shared/bin/origin/v4.3.0-nightly-20191213/oc'
+OC_CMD = '/var/b/shared/bin/oc/openshift-install-linux-4.3.0-rc.0/oc'
 
 def main():
     args = parse_args()
@@ -39,12 +43,11 @@ def main():
 
         if args.start:
             print("Starting:")
-            out = subprocess.run(['oc', 'start-build',
-                                  # hack the name; should extract from manifest
-                                  f'{args.prefix}fedora-coreos-pipeline'],
-                                 check=True, stdout=subprocess.PIPE,
-                                 encoding='utf-8')
-            print(f"  {out.stdout.strip()}")
+            cp = runcmd([OC_CMD, 'start-build',
+                         # hack the name; should extract from manifest
+                         f'{args.prefix}fedora-coreos-pipeline'],
+                        encoding='utf-8')
+            print(f"  {cp.stdout.strip()}")
             print()
         else:
             print("You may start your developer pipeline with:")
@@ -55,12 +58,29 @@ def main():
 
         delete_developer_resources(args, resources)
 
+def runcmd(cmd: list, **kwargs: int) -> subprocess.CompletedProcess:
+    # Default to capture output and Check=True
+    if 'capture_output' not in kwargs:
+        kwargs['capture_output'] = True
+    if 'check' not in kwargs:
+        kwargs['check'] = True
+    try:
+        print(f'Running command: {cmd}')
+        cp = subprocess.run(cmd, **kwargs)
+    except subprocess.CalledProcessError as e:
+        eprint('Running command returned bad exitcode')
+        eprint(f'COMMAND: {cmd}')
+        eprint(f' STDOUT: {e.stdout}')
+        eprint(f' STDERR: {e.stderr}')
+        raise e
+    return cp # subprocess.CompletedProcess
+
 
 def targeting_official_namespace():
-    ctx_name = subprocess.check_output(['oc', 'config', 'current-context'],
-                                       encoding='utf-8').strip()
-    cfg = yaml.safe_load(subprocess.check_output(['oc', 'config', 'view'],
-                                                 encoding='utf-8'))
+    ctx_name = runcmd([OC_CMD, 'config', 'current-context'],
+                       encoding='utf-8').stdout.strip()
+    cfg = yaml.safe_load(runcmd([OC_CMD, 'config', 'view'],
+                                encoding='utf-8').stdout)
     ctx = [c['context'] for c in cfg['contexts'] if c['name'] == ctx_name]
     assert len(ctx) == 1, f"Found {len(ctx)} contexts named '{ctx_name}'"
     ctx = ctx[0]
@@ -167,8 +187,8 @@ def process_template(args):
             tparams = [p['name'] for p in t.get('parameters', [])]
         # and generate the --param FOO=bar ... args for this template
         param_args = gen_param_args(tparams)
-        j = json.loads(subprocess.check_output(
-            ['oc', 'process', '--filename', f'manifests/{template}'] + param_args))
+        j = json.loads(runcmd([OC_CMD, 'process', '--filename', 
+                               f'manifests/{template}'] + param_args).stdout)
         resources += j['items']
     return resources
 
@@ -183,10 +203,9 @@ def update_resources(args, resources):
             if args.dry_run:
                 print(f"Would {action} {resource['kind'].lower()} {resource['metadata']['name']}")
                 continue
-            out = subprocess.run(['oc', action, '--filename', '-'],
-                                 input=json.dumps(resource), encoding='utf-8',
-                                 check=True, stdout=subprocess.PIPE)
-            print(f"  {out.stdout.strip()}")
+            cp = runcmd([OC_CMD, action, '--filename', '-'],
+                        input=json.dumps(resource), encoding='utf-8')
+            print(f"  {cp.stdout.strip()}")
     print()
 
 
@@ -208,10 +227,9 @@ def resource_action(resource):
 
 
 def resource_exists(resource):
-    return subprocess.call(['oc', 'get', resource['kind'],
-                            resource['metadata']['name']],
-                           stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL) == 0
+    cp = runcmd([OC_CMD, 'get', resource['kind'],
+                 resource['metadata']['name']], check=False)
+    return cp.returncode == 0
 
 
 def delete_developer_resources(args, resources):
@@ -219,10 +237,9 @@ def delete_developer_resources(args, resources):
     print("Deleting:")
     for resource in resources:
         if resource['metadata']['name'].startswith(args.prefix):
-            out = subprocess.run(['oc', 'delete', '--filename', '-'],
-                                 input=json.dumps(resource), encoding='utf-8',
-                                 check=True, stdout=subprocess.PIPE)
-            print(f"  {out.stdout.strip()}")
+            cp = runcmd([OC_CMD, 'delete', '--filename', '-'],
+                        check=False, input=json.dumps(resource), encoding='utf-8')
+            print(f"  {cp.stdout.strip()}")
     print()
 
 
@@ -239,9 +256,8 @@ def parse_git_refspec(refspec):
 
 
 def get_default_branch(repo):
-    output = subprocess.check_output(['git', 'ls-remote', '--symref',
-                                      repo, 'HEAD'],
-                                     encoding='utf-8')
+    output = runcmd(['git', 'ls-remote', '--symref', repo, 'HEAD'],
+                                                   encoding='utf-8')
     for line in output.splitlines():
         if line.startswith('ref: '):
             ref, symref = line[len('ref: '):].split()

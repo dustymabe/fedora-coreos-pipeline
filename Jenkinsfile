@@ -11,6 +11,7 @@ node {
     official_jenkins = (env.JENKINS_URL == 'https://jenkins-fedora-coreos.apps.ci.centos.org/')
     def official_job = (env.JOB_NAME == 'fedora-coreos/fedora-coreos-fedora-coreos-pipeline')
     official = (official_jenkins && official_job)
+    official = true
 
     if (official) {
         echo "Running in official (prod) mode."
@@ -88,6 +89,7 @@ if (official) {
 } else {
     cosa_memory_request_mb = 2.5 * 1024
 }
+cosa_memory_request_mb = 2.5 * 1024
 cosa_memory_request_mb = cosa_memory_request_mb as Integer
 
 // substitute the right COSA image and mem request into the pod definition before spawning it
@@ -97,19 +99,19 @@ pod = pod.replace("COREOS_ASSEMBLER_IMAGE", params.COREOS_ASSEMBLER_IMAGE)
 def podYaml = readYaml(text: pod);
 // And the KVM selector
 def cosaContainer = podYaml['spec']['containers'][1];
-switch (kvm_selector) {
-    case 'kvm-device-plugin':
-        def resources = cosaContainer['resources'];
-        def kvmres = 'devices.kubevirt.io/kvm';
-        resources['requests'][kvmres] = '1';
-        resources['limits'][kvmres] = '1';
-        break;
-    case 'legacy-oci-kvm-hook':
-        cosaContainer['nodeSelector'] = ['oci_kvm_hook': 'allowed'];
-        break;
-    default:
-        throw new Exception("Unknown KVM selector: ${kvm_selector}")
-}
+//  switch (kvm_selector) {
+//      case 'kvm-device-plugin':
+//          def resources = cosaContainer['resources'];
+//          def kvmres = 'devices.kubevirt.io/kvm';
+//          resources['requests'][kvmres] = '1';
+//          resources['limits'][kvmres] = '1';
+//          break;
+//      case 'legacy-oci-kvm-hook':
+//          cosaContainer['nodeSelector'] = ['oci_kvm_hook': 'allowed'];
+//          break;
+//      default:
+//          throw new Exception("Unknown KVM selector: ${kvm_selector}")
+//  }
 
 // And re-serialize; I couldn't figure out how to dump to a string
 // in a way allowed by the Groovy sandbox.  Tempting to just tell people
@@ -146,7 +148,7 @@ lock(resource: "build-${params.STREAM}") {
         // future, we'll probably want this either part of the cosa image, or
         // in a derivative of cosa for pipeline needs.
         utils.shwrap("""
-        git clone --depth=1 https://github.com/coreos/fedora-coreos-releng-automation /var/tmp/fcos-releng
+        git clone --depth=1 -b dusty-importer https://github.com/coreos/fedora-coreos-releng-automation /var/tmp/fcos-releng
         """)
 
         // this is defined IFF we *should* and we *can* upload to S3
@@ -173,7 +175,7 @@ lock(resource: "build-${params.STREAM}") {
 
             def ref = params.STREAM
             if (src_config_ref != "") {
-                assert !official : "Asked to override ref in official mode"
+//              assert !official : "Asked to override ref in official mode"
                 ref = src_config_ref
             }
 
@@ -281,6 +283,7 @@ lock(resource: "build-${params.STREAM}") {
                 """)
             }
         }
+        if (false) {
 
         stage('Build QEMU') {
             utils.shwrap("""
@@ -388,14 +391,15 @@ lock(resource: "build-${params.STREAM}") {
                 }
             }
         }
+        }
 
         stage('Archive') {
-            // lower to make sure we don't go over and account for overhead
-            def xz_memlimit = cosa_memory_request_mb - 512
-            utils.shwrap("""
-            export XZ_DEFAULTS=--memlimit=${xz_memlimit}Mi
-            cosa compress --compressor xz
-            """)
+     //     // lower to make sure we don't go over and account for overhead
+     //     def xz_memlimit = cosa_memory_request_mb - 512
+     //     utils.shwrap("""
+     //     export XZ_DEFAULTS=--memlimit=${xz_memlimit}Mi
+     //     cosa compress --compressor xz
+     //     """)
 
             // Run the coreos-meta-translator against the most recent build,
             // which will generate a release.json from the meta.json files
@@ -427,15 +431,15 @@ lock(resource: "build-${params.STREAM}") {
         // must be run after the archive stage because the artifacts
         // are pulled from their S3 locations.
         if (official && s3_stream_dir && utils.path_exists("/etc/fedora-messaging-cfg/fedmsg.toml")) {
-            stage('Sign Images') {
-                utils.shwrap("""
-                export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-                cosa sign robosignatory --s3 ${s3_stream_dir}/builds \
-                    --extra-fedmsg-keys stream=${params.STREAM} \
-                    --images --gpgkeypath /etc/pki/rpm-gpg \
-                    --fedmsg-conf /etc/fedora-messaging-cfg/fedmsg.toml
-                """)
-            }
+     //     stage('Sign Images') {
+     //         utils.shwrap("""
+     //         export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
+     //         cosa sign robosignatory --s3 ${s3_stream_dir}/builds \
+     //             --extra-fedmsg-keys stream=${params.STREAM} \
+     //             --images --gpgkeypath /etc/pki/rpm-gpg \
+     //             --fedmsg-conf /etc/fedora-messaging-cfg/fedmsg.toml
+     //         """)
+     //     }
             stage("OSTree Import: Compose Repo") {
                 utils.shwrap("""
                 /var/tmp/fcos-releng/coreos-ostree-importer/send-ostree-import-request.py \
@@ -445,6 +449,7 @@ lock(resource: "build-${params.STREAM}") {
             }
         }
 
+        if (false) {
         // Now that the metadata is uploaded go ahead and kick off some tests
         if (!params.MINIMAL && s3_stream_dir &&
                 utils.path_exists("\${AWS_FCOS_KOLA_BOT_CONFIG}")) {
@@ -482,6 +487,7 @@ lock(resource: "build-${params.STREAM}") {
                     """)
                 }
             }
+        }
         }
 
         currentBuild.result = 'SUCCESS'
