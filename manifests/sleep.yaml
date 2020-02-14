@@ -37,6 +37,11 @@ spec:
        readOnly: true
      securityContext:
        privileged: false
+     resources:
+       requests:
+         devices.kubevirt.io/kvm: "1"
+       limits:
+         devices.kubevirt.io/kvm: "1"
   volumes:
 # - name: data
 #   persistentVolumeClaim:
