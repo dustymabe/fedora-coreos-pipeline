@@ -26,12 +26,23 @@ spec:
      - name: aws-fcos-kola-bot-config
        mountPath: /.aws-fcos-kola-bot-config/
        readOnly: true
+     - name: github-token
+       mountPath: /.github
+       readOnly: true
+     - name: fedora-messaging-cfg
+       mountPath: /etc/fedora-messaging-cfg
+       readOnly: true
+     - name: fedora-messaging-coreos-key
+       mountPath: /run/fedora-messaging-coreos-key
+       readOnly: true
      securityContext:
        privileged: false
   volumes:
+# - name: data
+#   persistentVolumeClaim:
+#     claimName: coreos-assembler-claim2
   - name: data
-    persistentVolumeClaim:
-      claimName: coreos-assembler-claim2
+    emptyDir: {}
   # This secret is used for uploading to AWS
   - name: aws-fcos-builds-bot-config
     secret:
@@ -41,4 +52,17 @@ spec:
   - name: aws-fcos-kola-bot-config
     secret:
       secretName: aws-fcos-kola-bot-config
+      optional: true
+  - name: github-token
+    secret:
+      secretName: coreosbot-github-token
+      optional: true
+  # These two here are used for signing with RoboSignatory
+  - name: fedora-messaging-cfg
+    configMap:
+      name: fedora-messaging-cfg
+      optional: true
+  - name: fedora-messaging-coreos-key
+    secret:
+      secretName: fedora-messaging-coreos-key
       optional: true
