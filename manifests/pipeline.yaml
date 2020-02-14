@@ -79,7 +79,7 @@ objects:
         coreos.com/deploy-default: "true"
     spec:
       accessModes:
-      - ReadWriteOnce
+      - ReadWriteMany
       resources:
         requests:
           storage: ${PVC_SIZE}

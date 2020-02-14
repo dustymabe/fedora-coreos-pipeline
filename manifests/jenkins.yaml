@@ -38,7 +38,7 @@ objects:
     name: ${JENKINS_SERVICE_NAME}
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
     resources:
       requests:
         storage: ${VOLUME_CAPACITY}
