@@ -25,8 +25,8 @@ spec:
        - name: AWS_FCOS_KOLA_BOT_CONFIG
          value: /.aws-fcos-kola-bot-config/config
      volumeMounts:
-     - name: data
-       mountPath: /srv/
+#    - name: data
+#      mountPath: /srv/
      - name: aws-fcos-builds-bot-config
        mountPath: /.aws-fcos-builds-bot-config/
        readOnly: true
@@ -49,9 +49,9 @@ spec:
          memory: COREOS_ASSEMBLER_MEMORY_REQUEST
        limits: {}
   volumes:
-  - name: data
-    persistentVolumeClaim:
-      claimName: coreos-assembler-claim2
+# - name: data
+#   persistentVolumeClaim:
+#     claimName: coreos-assembler-claim2
   # This secret is used for uploading to AWS
   - name: aws-fcos-builds-bot-config
     secret:

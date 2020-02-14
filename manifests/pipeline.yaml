@@ -71,18 +71,18 @@ objects:
 
   ### PVC ###
 
-  - apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      name: coreos-assembler-claim2
-      annotations:
-        coreos.com/deploy-default: "true"
-    spec:
-      accessModes:
-      - ReadWriteMany
-      resources:
-        requests:
-          storage: ${PVC_SIZE}
+# - apiVersion: v1
+#   kind: PersistentVolumeClaim
+#   metadata:
+#     name: coreos-assembler-claim2
+#     annotations:
+#       coreos.com/deploy-default: "true"
+#   spec:
+#     accessModes:
+#     - ReadWriteMany
+#     resources:
+#       requests:
+#         storage: ${PVC_SIZE}
 
   ### FEDORA COREOS BUILD PIPELINE ###
 
