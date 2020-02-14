@@ -77,7 +77,7 @@ podTemplate(cloud: 'openshift', label: pod_label, yaml: pod) {
                 utils.shwrap("""
                 /var/tmp/fcos-releng/coreos-ostree-importer/send-ostree-import-request.py \
                     --build=${params.VERSION} --s3=${s3_stream_dir} --repo=prod \
-                    --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml
+                    --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml --stg
                 """)
             }
         }
