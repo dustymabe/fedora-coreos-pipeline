@@ -99,19 +99,19 @@ pod = pod.replace("COREOS_ASSEMBLER_IMAGE", params.COREOS_ASSEMBLER_IMAGE)
 def podYaml = readYaml(text: pod);
 // And the KVM selector
 def cosaContainer = podYaml['spec']['containers'][1];
-//  switch (kvm_selector) {
-//      case 'kvm-device-plugin':
-//          def resources = cosaContainer['resources'];
-//          def kvmres = 'devices.kubevirt.io/kvm';
-//          resources['requests'][kvmres] = '1';
-//          resources['limits'][kvmres] = '1';
-//          break;
-//      case 'legacy-oci-kvm-hook':
-//          cosaContainer['nodeSelector'] = ['oci_kvm_hook': 'allowed'];
-//          break;
-//      default:
-//          throw new Exception("Unknown KVM selector: ${kvm_selector}")
-//  }
+switch (kvm_selector) {
+    case 'kvm-device-plugin':
+        def resources = cosaContainer['resources'];
+        def kvmres = 'devices.kubevirt.io/kvm';
+        resources['requests'][kvmres] = '1';
+        resources['limits'][kvmres] = '1';
+        break;
+    case 'legacy-oci-kvm-hook':
+        cosaContainer['nodeSelector'] = ['oci_kvm_hook': 'allowed'];
+        break;
+    default:
+        throw new Exception("Unknown KVM selector: ${kvm_selector}")
+}
 
 // And re-serialize; I couldn't figure out how to dump to a string
 // in a way allowed by the Groovy sandbox.  Tempting to just tell people
