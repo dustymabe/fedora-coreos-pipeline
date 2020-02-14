@@ -444,7 +444,7 @@ lock(resource: "build-${params.STREAM}") {
                 utils.shwrap("""
                 /var/tmp/fcos-releng/coreos-ostree-importer/send-ostree-import-request.py \
                     --build=${newBuildID} --s3=${s3_stream_dir} --repo=compose \
-                    --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml
+                    --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml --stg
                 """)
             }
         }
