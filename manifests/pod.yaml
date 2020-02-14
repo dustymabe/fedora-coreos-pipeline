@@ -47,7 +47,9 @@ spec:
      resources:
        requests:
          memory: COREOS_ASSEMBLER_MEMORY_REQUEST
-       limits: {}
+         devices.kubevirt.io/kvm: "1"
+       limits:
+         devices.kubevirt.io/kvm: "1"
   volumes:
 # - name: data
 #   persistentVolumeClaim:
