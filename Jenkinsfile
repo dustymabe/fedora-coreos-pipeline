@@ -272,6 +272,7 @@ lock(resource: "build-${params.STREAM}") {
             }
         }
 
+        if (false) {
         if (official && s3_stream_dir && utils.path_exists("/etc/fedora-messaging-cfg/fedmsg.toml")) {
             stage('Sign OSTree') {
                 utils.shwrap("""
@@ -283,7 +284,6 @@ lock(resource: "build-${params.STREAM}") {
                 """)
             }
         }
-        if (false) {
 
         stage('Build QEMU') {
             utils.shwrap("""
