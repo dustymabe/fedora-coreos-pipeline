@@ -296,6 +296,7 @@ lock(resource: "build-${params.STREAM}") {
             """)
         }
 
+if (false) {
         stage('Kola:QEMU basic') {
             utils.shwrap("""
             cosa kola run --basic-qemu-scenarios --no-test-exit-error
@@ -330,8 +331,10 @@ lock(resource: "build-${params.STREAM}") {
         if (!utils.checkKolaSuccess("tmp/kola-upgrade", currentBuild)) {
             return
         }
+}
 
         if (!params.MINIMAL) {
+if (false) {
             stage('Build Metal') {
                 utils.shwrap("""
                 cosa buildextend-metal
@@ -385,6 +388,7 @@ lock(resource: "build-${params.STREAM}") {
                 cosa buildextend-vmware
                 """)
             }
+}
 
             stage('Build GCP') {
                 utils.shwrap("""
@@ -392,6 +396,7 @@ lock(resource: "build-${params.STREAM}") {
                 """)
             }
 
+if (false) {
             stage('Build DigitalOcean') {
                 utils.shwrap("""
                 cosa buildextend-digitalocean
@@ -419,6 +424,7 @@ lock(resource: "build-${params.STREAM}") {
                     """)
                 }
             }
+}
 
             // If there is a config for GCP then we'll upload our image to GCP
             if (utils.path_exists("\${GCP_IMAGE_UPLOAD_CONFIG}")) {
@@ -473,6 +479,7 @@ lock(resource: "build-${params.STREAM}") {
             }
         }
 
+if (false) {
         // These steps interact with Fedora Infrastructure/Releng for
         // signing of artifacts and importing of OSTree commits. They
         // must be run after the archive stage because the artifacts
@@ -534,6 +541,7 @@ lock(resource: "build-${params.STREAM}") {
                 }
             }
         }
+}
 
         currentBuild.result = 'SUCCESS'
 
