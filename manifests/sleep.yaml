@@ -30,8 +30,7 @@ spec:
        privileged: false
   volumes:
   - name: data
-    persistentVolumeClaim:
-      claimName: coreos-assembler-claim2
+    emptyDir: {}
   # This secret is used for uploading to AWS
   - name: aws-fcos-builds-bot-config
     secret:
