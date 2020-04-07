@@ -60,11 +60,8 @@ spec:
        limits: {}
   volumes:
   - name: cache
-    # XXX Disabled for now; we're seeing odd I/O issues possibly related to NFS:
-    # https://github.com/coreos/fedora-coreos-pipeline/issues/212
-    #persistentVolumeClaim:
-    #  claimName: coreos-assembler-claim2
-    emptyDir: {}
+    persistentVolumeClaim:
+      claimName: coreos-assembler-claim2
   # This secret is used for uploading to AWS
   - name: aws-fcos-builds-bot-config
     secret:
