@@ -183,10 +183,10 @@ lock(resource: "build-${params.STREAM}") {
         stage('Init') {
 
             def ref = params.STREAM
-            if (src_config_ref != "") {
+//          if (src_config_ref != "") {
 //              assert !official : "Asked to override ref in official mode"
-                ref = src_config_ref
-            }
+//              ref = src_config_ref
+//          }
 
             // for now, just use the PVC to keep cache.qcow2 in a stream-specific dir
             def cache_img
