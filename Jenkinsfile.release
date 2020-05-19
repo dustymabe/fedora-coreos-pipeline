@@ -98,17 +98,18 @@ podTemplate(cloud: 'openshift', label: pod_label, yaml: pod) {
         // will be the chosen image in an image family and deprecate
         // all others. `ore gcloud promote-image` does this for us.
         if (params.STREAM in streams.production) {
-                stage('GCP: Image Promotion') {
-                    utils.shwrap("""
-                    # pick up the project to use from the config
-                    gcp_project=\$(jq -r .project_id \${GCP_IMAGE_UPLOAD_CONFIG})
-                    ore gcloud promote-image \
-                        --log-level=INFO \
-                        --project=\${gcp_project} \
-                        --json-key \${GCP_IMAGE_UPLOAD_CONFIG} \
-                        --family fedora-coreos-${params.STREAM} \
-                        --image "${gcp_image}"
-                    """)
+            stage('GCP: Image Promotion') {
+                utils.shwrap("""
+                # pick up the project to use from the config
+                gcp_project=\$(jq -r .project_id \${GCP_IMAGE_UPLOAD_CONFIG})
+                ore gcloud promote-image \
+                    --log-level=INFO \
+                    --project=\${gcp_project} \
+                    --json-key \${GCP_IMAGE_UPLOAD_CONFIG} \
+                    --family fedora-coreos-${params.STREAM} \
+                    --image "${gcp_image}"
+                """)
+            }
         }
 
         if (params.AWS_REPLICATION == 'true') {
