@@ -23,6 +23,8 @@ import yaml
 import argparse
 import subprocess
 
+#OC_CMD = '/var/b/shared/bin/oc/openshift-origin-client-tools-v3.6.1-008f2d5-linux-64bit/oc'
+OC_CMD = '/var/b/shared/bin/oc/openshift-clients-4.4.0-202005111349/oc'
 
 def main():
     args = parse_args()
@@ -39,7 +41,7 @@ def main():
 
         if args.start:
             print("Starting:")
-            out = subprocess.run(['oc', 'start-build',
+            out = subprocess.run([OC_CMD, 'start-build',
                                   # hack the name; should extract from manifest
                                   f'{args.prefix}fedora-coreos-pipeline'],
                                  check=True, stdout=subprocess.PIPE,
@@ -57,9 +59,9 @@ def main():
 
 
 def targeting_official_namespace():
-    ctx_name = subprocess.check_output(['oc', 'config', 'current-context'],
+    ctx_name = subprocess.check_output([OC_CMD, 'config', 'current-context'],
                                        encoding='utf-8').strip()
-    cfg = yaml.safe_load(subprocess.check_output(['oc', 'config', 'view'],
+    cfg = yaml.safe_load(subprocess.check_output([OC_CMD, 'config', 'view'],
                                                  encoding='utf-8'))
     ctx = [c['context'] for c in cfg['contexts'] if c['name'] == ctx_name]
     assert len(ctx) == 1, f"Found {len(ctx)} contexts named '{ctx_name}'"
@@ -172,7 +174,7 @@ def process_template(args):
         # and generate the --param FOO=bar ... args for this template
         param_args = gen_param_args(tparams)
         j = json.loads(subprocess.check_output(
-            ['oc', 'process', '--filename', f'manifests/{template}'] + param_args))
+            [OC_CMD, 'process', '--filename', f'manifests/{template}'] + param_args))
         resources += j['items']
     return resources
 
@@ -187,7 +189,7 @@ def update_resources(args, resources):
             if args.dry_run:
                 print(f"Would {action} {resource['kind'].lower()} {resource['metadata']['name']}")
                 continue
-            out = subprocess.run(['oc', action, '--filename', '-'],
+            out = subprocess.run([OC_CMD, action, '--filename', '-'],
                                  input=json.dumps(resource), encoding='utf-8',
                                  check=True, stdout=subprocess.PIPE)
             print(f"  {out.stdout.strip()}")
@@ -212,7 +214,7 @@ def resource_action(resource):
 
 
 def resource_exists(resource):
-    return subprocess.call(['oc', 'get', resource['kind'],
+    return subprocess.call([OC_CMD, 'get', resource['kind'],
                             resource['metadata']['name']],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL) == 0
@@ -223,7 +225,7 @@ def delete_developer_resources(args, resources):
     print("Deleting:")
     for resource in resources:
         if resource['metadata']['name'].startswith(args.prefix):
-            out = subprocess.run(['oc', 'delete', '--filename', '-'],
+            out = subprocess.run([OC_CMD, 'delete', '--filename', '-'],
                                  input=json.dumps(resource), encoding='utf-8',
                                  check=True, stdout=subprocess.PIPE)
             print(f"  {out.stdout.strip()}")
