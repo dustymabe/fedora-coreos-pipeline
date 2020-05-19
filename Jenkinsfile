@@ -469,7 +469,6 @@ if (false) {
             // lower to make sure we don't go over and account for overhead
             def xz_memlimit = cosa_memory_request_mb - 512
             utils.shwrap("""
-            export XZ_DEFAULTS=--memlimit=${xz_memlimit}Mi
             cosa compress --compressor xz
             """)
 
