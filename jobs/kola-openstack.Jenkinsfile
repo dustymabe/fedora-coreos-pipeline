@@ -105,8 +105,7 @@ cosaPod(image: params.COREOS_ASSEMBLER_IMAGE,
         stage('Delete Image') {
             // Delete the image in OpenStack
             shwrap("""
-            ore openstack --config-file=\${OPENSTACK_KOLA_TESTS_CONFIG}/config \
-                 delete-image --id=${openstack_image_name}
+            echo foo
             """)
         }
     }
