@@ -294,46 +294,46 @@ lock(resource: "build-${params.STREAM}") {
             throw new Exception("unreachable")
         }
 
-        stage('Kola:QEMU basic') {
-            shwrap("""
-            cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
-            tar -cf - tmp/kola/ | xz -c9 > kola-run-basic.tar.xz
-            """)
-            archiveArtifacts "kola-run-basic.tar.xz"
-        }
-        if (!pipeutils.checkKolaSuccess("tmp/kola", currentBuild)) {
-            return
-        }
+//      stage('Kola:QEMU basic') {
+//          shwrap("""
+//          cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
+//          tar -cf - tmp/kola/ | xz -c9 > kola-run-basic.tar.xz
+//          """)
+//          archiveArtifacts "kola-run-basic.tar.xz"
+//      }
+//      if (!pipeutils.checkKolaSuccess("tmp/kola", currentBuild)) {
+//          return
+//      }
 
-        stage('Kola:QEMU') {
-            // leave 512M for overhead; VMs are 1G each
-            def parallel = ((cosa_memory_request_mb - 512) / 1024) as Integer
-            shwrap("""
-            cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
-            tar -cf - tmp/kola/ | xz -c9 > kola-run.tar.xz
-            """)
-            archiveArtifacts "kola-run.tar.xz"
-        }
-        if (!pipeutils.checkKolaSuccess("tmp/kola", currentBuild)) {
-            return
-        }
+//      stage('Kola:QEMU') {
+//          // leave 512M for overhead; VMs are 1G each
+//          def parallel = ((cosa_memory_request_mb - 512) / 1024) as Integer
+//          shwrap("""
+//          cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
+//          tar -cf - tmp/kola/ | xz -c9 > kola-run.tar.xz
+//          """)
+//          archiveArtifacts "kola-run.tar.xz"
+//      }
+//      if (!pipeutils.checkKolaSuccess("tmp/kola", currentBuild)) {
+//          return
+//      }
 
-        try {
-            stage('Kola:QEMU upgrade') {
-                shwrap("""
-                cosa kola --rerun --upgrades --no-test-exit-error
-                tar -cf - tmp/kola-upgrade | xz -c9 > kola-run-upgrade.tar.xz
-                """)
-                archiveArtifacts "kola-run-upgrade.tar.xz"
-            }
-            if (!params.ALLOW_KOLA_UPGRADE_FAILURE && !pipeutils.checkKolaSuccess("tmp/kola-upgrade", currentBuild)) {
-                return
-            }
-        } catch(e) {
-            if (!params.ALLOW_KOLA_UPGRADE_FAILURE) {
-                throw e
-            }
-        }
+//      try {
+//          stage('Kola:QEMU upgrade') {
+//              shwrap("""
+//              cosa kola --rerun --upgrades --no-test-exit-error
+//              tar -cf - tmp/kola-upgrade | xz -c9 > kola-run-upgrade.tar.xz
+//              """)
+//              archiveArtifacts "kola-run-upgrade.tar.xz"
+//          }
+//          if (!params.ALLOW_KOLA_UPGRADE_FAILURE && !pipeutils.checkKolaSuccess("tmp/kola-upgrade", currentBuild)) {
+//              return
+//          }
+//      } catch(e) {
+//          if (!params.ALLOW_KOLA_UPGRADE_FAILURE) {
+//              throw e
+//          }
+//      }
 
         // Do an Early Archive of just the OSTree. This has the
         // desired side effect of reserving our build ID before
@@ -479,17 +479,17 @@ lock(resource: "build-${params.STREAM}") {
             }
         }
 
-        // Generate KeyLime hashes for attestation on builds
-        // This is a POC setup and will be modified over time
-        // See: https://github.com/keylime/enhancements/blob/master/16_remote_allowlist_retrieval.md
-        stage('KeyLime Hash Generation') {
-            shwrap("""
-            cosa generate-hashlist --arch=${basearch} --release=${newBuildID} \
-                --output=builds/${newBuildID}/${basearch}/exp-hash.json
-            sha256sum builds/${newBuildID}/${basearch}/exp-hash.json \
-                > builds/${newBuildID}/${basearch}/exp-hash.json-CHECKSUM
-            """)
-        }
+//      // Generate KeyLime hashes for attestation on builds
+//      // This is a POC setup and will be modified over time
+//      // See: https://github.com/keylime/enhancements/blob/master/16_remote_allowlist_retrieval.md
+//      stage('KeyLime Hash Generation') {
+//          shwrap("""
+//          cosa generate-hashlist --arch=${basearch} --release=${newBuildID} \
+//              --output=builds/${newBuildID}/${basearch}/exp-hash.json
+//          sha256sum builds/${newBuildID}/${basearch}/exp-hash.json \
+//              > builds/${newBuildID}/${basearch}/exp-hash.json-CHECKSUM
+//          """)
+//      }
 
         stage('Archive') {
             // lower to make sure we don't go over and account for overhead
