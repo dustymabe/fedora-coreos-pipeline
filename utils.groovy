@@ -1,5 +1,11 @@
 import org.yaml.snakeyaml.Yaml
 
+// for credentialExists()
+import jenkins.*
+import jenkins.model.*
+import hudson.*
+import hudson.model.*
+
 // Only add pipeline-specific things here. Otherwise add to coreos-ci-lib
 // instead.
 
@@ -80,6 +86,27 @@ def bump_builds_json(stream, buildid, arch, s3_stream_dir) {
         aws s3 cp --cache-control=max-age=300 --acl=public-read builds/builds.json s3://${s3_stream_dir}/builds/builds.json
         """)
     }
+}
+
+boolean credentialExists(id) {
+	// A function to return if a credential exists or not. There are some
+    // different approaches to this [1] but I found [2] mosta appealing for
+    // what we need here.
+    //
+    // [1] https://roht.no/scribbles/jenkins-checking-credentials/
+    // [2] https://scriptcrunch.com/groovy-script-retrieve-jenkins-credentials/
+	def jenkinsCredentials = com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
+			com.cloudbees.plugins.credentials.Credentials.class,
+			Jenkins.instance,
+			null,
+			null
+	);
+	for (creds in jenkinsCredentials) {
+	  if (creds.id == id) {
+        return true
+	  }
+	}
+    return false
 }
 
 return this

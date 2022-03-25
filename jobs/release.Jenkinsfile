@@ -123,7 +123,7 @@ podTemplate(cloud: 'openshift', label: pod_label, yaml: pod) {
             def meta = readJSON file: meta_json
 
             // for now we only support pushing x86_64 images
-            if (basearch == 'x86_64') {
+            if (basearch == 'x86_64' && pipeutils.credentialExists('oscontainer-secret')) {
                 stage("Push Container") {
                     def image_path = shwrapCapture("cosa meta --build=${params.VERSION} --image-path ostree")
                     withCredentials([file(credentialsId: 'oscontainer-secret', variable: 'OSCONTAINER_SECRET')]) {
