@@ -94,15 +94,13 @@ boolean credentialExists(String id) {
     //
     // [1] https://roht.no/scribbles/jenkins-checking-credentials/
     // [2] https://scriptcrunch.com/groovy-script-retrieve-jenkins-credentials/
-    shwrap("cat $JENKINS_HOME/credentials.xml | grep '<id>'")
-    
-    def available_credentials = CredentialsProvider.findCredentialById(
-      id,
-      com.cloudbees.plugins.credentials.Credentials.class,
-      currentBuild.getRawBuild(),
-      Collections.<DomainRequirement>emptyList()
-    )
-    return available_credentials != null
+    try {
+        withCredentials([string(credentialsId: id, variable: 'irrelevant')]) {
+            return true
+        }
+    } catch (_) {
+    }
+    return false
 }
 
 return this
