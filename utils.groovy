@@ -1,10 +1,9 @@
 import org.yaml.snakeyaml.Yaml
 
 // for credentialExists()
-import jenkins.*
-import jenkins.model.*
-import hudson.*
-import hudson.model.*
+import com.cloudbees.plugins.credentials.CredentialsProvider
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials
+import com.cloudbees.plugins.credentials.domains.DomainRequirement
 
 // Only add pipeline-specific things here. Otherwise add to coreos-ci-lib
 // instead.
@@ -88,25 +87,20 @@ def bump_builds_json(stream, buildid, arch, s3_stream_dir) {
     }
 }
 
-boolean credentialExists(id) {
-	// A function to return if a credential exists or not. There are some
+boolean credentialExists(String id) {
+    // A function to return if a credential exists or not. There are some
     // different approaches to this [1] but I found [2] mosta appealing for
     // what we need here.
     //
     // [1] https://roht.no/scribbles/jenkins-checking-credentials/
     // [2] https://scriptcrunch.com/groovy-script-retrieve-jenkins-credentials/
-	def jenkinsCredentials = com.cloudbees.plugins.credentials.CredentialsProvider.lookupCredentials(
-			com.cloudbees.plugins.credentials.Credentials.class,
-			Jenkins.instance,
-			null,
-			null
-	);
-	for (creds in jenkinsCredentials) {
-	  if (creds.id == id) {
-        return true
-	  }
-	}
-    return false
+    def available_credentials = CredentialsProvider.findCredentialById(
+      id,
+      com.cloudbees.plugins.credentials.Credentials.class,
+      currentBuild.getRawBuild(),
+      Collections.<DomainRequirement>emptyList()
+    )
+    return available_credentials != null
 }
 
 return this
