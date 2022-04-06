@@ -72,16 +72,16 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // do a first fetch where we only fetch metadata; no point in
     // importing RPMs if nothing actually changed
     stage("Fetch Metadata") {
-        parallel x86_64: {
+ //     parallel x86_64: {
             shwrap("cosa fetch --update-lockfile --dry-run")
-        }, aarch64: {
-            def appendFlags = "--git-ref=${params.STREAM}"
-            appendFlags += " --git-url=https://github.com/${repo}"
-            appendFlags += " --returnFiles=src/config/manifest-lock.aarch64.json"
-            gp.gangplankArchWrapper([cmd: "cosa fetch --update-lockfile --dry-run",
-                                     arch: "aarch64", appendFlags: appendFlags])
-            shwrap("cp builds/cache/src/config/manifest-lock.aarch64.json src/config/manifest-lock.aarch64.json")
-        }
+ //     }, aarch64: {
+ //         def appendFlags = "--git-ref=${params.STREAM}"
+ //         appendFlags += " --git-url=https://github.com/${repo}"
+ //         appendFlags += " --returnFiles=src/config/manifest-lock.aarch64.json"
+ //         gp.gangplankArchWrapper([cmd: "cosa fetch --update-lockfile --dry-run",
+ //                                  arch: "aarch64", appendFlags: appendFlags])
+ //         shwrap("cp builds/cache/src/config/manifest-lock.aarch64.json src/config/manifest-lock.aarch64.json")
+ //     }
     }
 
     for (arch in archinfo.keySet()) {
