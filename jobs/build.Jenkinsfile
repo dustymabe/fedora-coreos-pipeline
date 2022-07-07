@@ -153,26 +153,24 @@ lock(resource: "build-${params.STREAM}") {
         }
 
         def local_builddir = "/srv/devel/streams/${params.STREAM}"
-        def fcos_config_commit
+        def ref = params.STREAM
+        if (src_config_ref != "") {
+            assert !official : "Asked to override ref in official mode"
+            ref = src_config_ref
+        }
+        def fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d $'\t' -f 1")
 
         stage('Init') {
 
-            def ref = params.STREAM
-            if (src_config_ref != "") {
-                ref = src_config_ref
-            }
 
             // for now, just use the PVC to keep cache.qcow2 in a stream-specific dir
             def cache_img = "/srv/prod/${params.STREAM}/cache.qcow2"
 
             shwrap("""
-            cosa init --force --branch ${ref} ${src_config_url}
+            cosa init --force --branch ${ref} --commit=${fcos_config_commit} ${src_config_url}
             mkdir -p \$(dirname ${cache_img})
             ln -s ${cache_img} cache/cache.qcow2
             """)
-
-            // Capture the exact git commit used. Will pass to multi-arch pipeline runs.
-            fcos_config_commit = shwrapCapture("git -C src/config rev-parse HEAD")
 
             // If the cache img is larger than 7G, then nuke it. Otherwise
             // it'll just keep growing and we'll hit ENOSPC. It'll get rebuilt.
@@ -183,38 +181,45 @@ lock(resource: "build-${params.STREAM}") {
             """)
         }
 
+        // Determine parent version/commit information
         def parent_version = ""
         def parent_commit = ""
-        stage('Fetch') {
-            if (s3_stream_dir) {
-                pipeutils.aws_s3_cp_allow_noent("s3://${s3_stream_dir}/releases.json", "tmp/releases.json")
-                if (utils.pathExists("tmp/releases.json")) {
-                    def releases = readJSON file: "tmp/releases.json"
-                    // check if there's a previous release we should use as parent
-                    for (release in releases["releases"].reverse()) {
-                        def commit_obj = release["commits"].find{ commit -> commit["architecture"] == basearch }
-                        if (commit_obj != null) {
-                            parent_commit = commit_obj["checksum"]
-                            parent_version = release["version"]
-                            break
-                        }
+        if (s3_stream_dir) {
+            pipeutils.aws_s3_cp_allow_noent("s3://${s3_stream_dir}/releases.json", "tmp/releases.json")
+            if (utils.pathExists("tmp/releases.json")) {
+                def releases = readJSON file: "tmp/releases.json"
+                // check if there's a previous release we should use as parent
+                for (release in releases["releases"].reverse()) {
+                    def commit_obj = release["commits"].find{ commit -> commit["architecture"] == basearch }
+                    if (commit_obj != null) {
+                        parent_commit = commit_obj["checksum"]
+                        parent_version = release["version"]
+                        break
                     }
                 }
+            }
+        }
 
+        // buildfetch previous build info and and fetch from repos for the current build
+        stage('Fetch') {
+            if (s3_stream_dir) {
                 shwrap("""
-                export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-                cosa buildfetch --url s3://${s3_stream_dir}/builds
+                cosa buildfetch --arch=${basearch} \
+                    --url s3://${s3_stream_dir}/builds \
+                    --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG}
                 """)
                 if (parent_version != "") {
                     // also fetch the parent version; this is used by cosa to do the diff
                     shwrap("""
-                    export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-                    cosa buildfetch --url s3://${s3_stream_dir}/builds --build ${parent_version}
+                    cosa buildfetch --arch=${basearch} \
+                        --build ${parent_version} \
+                        --url s3://${s3_stream_dir}/builds \
+                        --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG}
                     """)
                 }
             } else if (utils.pathExists(local_builddir)) {
                 shwrap("""
-                cosa buildfetch --url ${local_builddir}
+                cosa buildfetch --url=${local_builddir} --arch=${basearch}
                 """)
             }
 
@@ -227,56 +232,55 @@ lock(resource: "build-${params.STREAM}") {
         if (utils.pathExists("builds/latest")) {
             prevBuildID = shwrapCapture("readlink builds/latest")
         }
+        
+        def new_version = ""
+        if (params.VERSION) {
+            new_version = params.VERSION
+        } else if (official) {
+            // only use versioning that matches prod if we are running in the
+            // official pipeline.
+            new_version = shwrapCapture("/var/tmp/fcos-releng/scripts/versionary.py")
+        }
 
-        stage('Build') {
+        stage('Build OSTree') {
             def parent_arg = ""
             if (parent_version != "") {
                 parent_arg = "--parent-build ${parent_version}"
             }
-
+            def version = "--version ${new_version}"
             def force = params.FORCE ? "--force" : ""
-            def version = ""
-            if (params.VERSION) {
-                version = "--version ${params.VERSION}"
-            } else if (official) {
-                // only use versioning that matches prod if we are running in the
-                // official pipeline.
-                def new_version = shwrapCapture("/var/tmp/fcos-releng/scripts/versionary.py")
-                version = "--version ${new_version}"
-            }
             shwrap("""
             cosa build ostree ${strict_build_param} --skip-prune ${force} ${version} ${parent_arg}
             """)
         }
 
-        def meta_json
         def buildID = shwrapCapture("readlink builds/latest")
         if (prevBuildID == buildID) {
             currentBuild.result = 'SUCCESS'
             currentBuild.description = "[${params.STREAM}] 💤 (no new build)"
             return
-        } else {
-            newBuildID = buildID
-            currentBuild.description = "[${params.STREAM}] ⚡ ${newBuildID}"
-            meta_json = "builds/${newBuildID}/${basearch}/meta.json"
+        }
 
-            // and insert the parent info into meta.json so we can display it in
-            // the release browser and for sanity checking
-            if (parent_commit && parent_version) {
-                def meta = readJSON file: meta_json
-                meta["fedora-coreos.parent-version"] = parent_version
-                meta["fedora-coreos.parent-commit"] = parent_commit
-                writeJSON file: meta_json, json: meta
-            }
+        newBuildID = buildID
+        currentBuild.description = "[${params.STREAM}][${basearch}] ⚡ ${newBuildID}"
 
-            if (official) {
-                shwrap("""
-                /var/tmp/fcos-releng/scripts/broadcast-fedmsg.py --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml \
-                    build.state.change --build ${newBuildID} --basearch ${basearch} --stream ${params.STREAM} \
-                    --build-dir ${BUILDS_BASE_HTTP_URL}/${params.STREAM}/builds/${newBuildID}/${basearch} \
-                    --state STARTED
-                """)
-            }
+        // Insert the parent info into meta.json so we can display it in
+        // the release browser and for sanity checking
+        if (parent_commit && parent_version) {
+            shwrap("""
+            cosa meta \
+                --set fedora-coreos.parent-commit=${parent_commit} \
+                --set fedora-coreos.parent-version=${parent_version}
+            """)
+        }
+
+        if (official) {
+            shwrap("""
+            /var/tmp/fcos-releng/scripts/broadcast-fedmsg.py --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml \
+                build.state.change --build ${newBuildID} --basearch ${basearch} --stream ${params.STREAM} \
+                --build-dir ${BUILDS_BASE_HTTP_URL}/${params.STREAM}/builds/${newBuildID}/${basearch} \
+                --state STARTED
+            """)
         }
 
         if (official && uploading && utils.pathExists("/etc/fedora-messaging-cfg/fedmsg.toml")) {
@@ -325,7 +329,7 @@ lock(resource: "build-${params.STREAM}") {
         stage('Kola:QEMU basic') {
             shwrap("""
             cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
-            tar -cf - tmp/kola/ | xz -c9 > kola-run-basic.tar.xz
+            cosa shell -- tar -c --xz tmp/kola/ > kola-run-basic.tar.xz
             """)
             archiveArtifacts "kola-run-basic.tar.xz"
         }
@@ -342,7 +346,7 @@ lock(resource: "build-${params.STREAM}") {
             def parallel = ((cosa_memory_request_mb - 1536) / 1024) as Integer
             shwrap("""
             cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
-            tar -cf - tmp/kola/ | xz -c9 > kola-run.tar.xz
+            cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
             """)
             archiveArtifacts "kola-run.tar.xz"
             if (!pipeutils.checkKolaSuccess("tmp/kola")) {
@@ -358,7 +362,7 @@ lock(resource: "build-${params.STREAM}") {
             try {
                 shwrap("""
                 cosa kola --rerun --upgrades --no-test-exit-error
-                tar -cf - tmp/kola-upgrade | xz -c9 > kola-run-upgrade.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.tar.xz
                 """)
                 archiveArtifacts "kola-run-upgrade.tar.xz"
                 if (!pipeutils.checkKolaSuccess("tmp/kola-upgrade")) {
@@ -453,30 +457,31 @@ lock(resource: "build-${params.STREAM}") {
                 """)
                 try {
                     parallel metal: {
-                        shwrap("kola testiso -S --output-dir tmp/kola-metal")
+                        shwrap("cosa kola testiso -S --output-dir tmp/kola-testiso-metal")
                     }, metal4k: {
-                        shwrap("kola testiso -SP --qemu-native-4k --output-dir tmp/kola-metal4k")
+                        shwrap("cosa kola testiso -SP --qemu-native-4k --output-dir tmp/kola-testiso-metal4k")
                     }, uefi: {
-                        shwrap("mkdir -p tmp/kola-uefi")
+                        shwrap("cosa shell -- mkdir -p tmp/kola-testiso-uefi")
                         shwrap("""
                         mkdir tmp/iso-live-login-with-rd-debug
                         iso=tmp/iso-live-login-with-rd-debug/test.iso
                         coreos-installer iso kargs modify --append rd.debug builds/${newBuildID}/${basearch}/*.iso -o \$iso
                         kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --qemu-iso \$iso --output-dir tmp/kola-uefi/rd-debug
                         """)
-                        shwrap("kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-uefi/insecure")
-                        shwrap("kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-uefi/secure")
+                        shwrap("cosa kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/uefi/insecure")
+                        shwrap("cosa kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/secure")
                     }
                 } catch (Throwable e) {
                     throw e
                 } finally {
-                    shwrap("tar -cf - tmp/kola-metal/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-metal.tar.xz")
-                    shwrap("tar -cf - tmp/kola-metal4k/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-metal4k.tar.xz")
-                    shwrap("tar -cf - tmp/kola-uefi/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-uefi.tar.xz")
+                    shwrap("""
+                    cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.tar.xz
+                    cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.tar.xz
+                    cosa shell -- tar -c --xz tmp/kola-testiso-uefi/ > kola-testiso-uefi-metal4k.tar.xz
+                    """)
                     archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.tar.xz'
                 }
             }
-
 
             // reset for the next batch of independent tasks
             parallelruns = [:]
@@ -491,13 +496,14 @@ lock(resource: "build-${params.STREAM}") {
                     // also publish vmdks, we could make this more efficient by
                     // uploading first, and then pointing ore at our uploaded vmdk
                     shwrap("""
-                    export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
                     cosa buildextend-aws \
                         --upload \
+                        --arch=${basearch} \
                         --build=${newBuildID} \
                         --region=us-east-1 \
                         --bucket s3://${s3_bucket}/ami-import \
-                        --grant-user ${FEDORA_AWS_TESTING_USER_ID}
+                        --grant-user ${FEDORA_AWS_TESTING_USER_ID} \
+                        --credentials-file=\${AWS_FCOS_BUILDS_BOT_CONFIG}
                     """)
                 }
             }
@@ -545,18 +551,17 @@ lock(resource: "build-${params.STREAM}") {
               // just upload as public-read for now, but see discussions in
               // https://github.com/coreos/fedora-coreos-tracker/issues/189
               shwrap("""
-              export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
-              cosa buildupload --skip-builds-json \
-                  s3 --acl=public-read ${s3_stream_dir}/builds
+              cosa buildupload --skip-builds-json s3 \
+                  --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG} \
+                  --acl=public-read ${s3_stream_dir}/builds
               """)
             } else {
               // Without an S3 server, just archive into the PVC
               // itself. Otherwise there'd be no other way to retrieve the
               // artifacts. But note we only keep one build at a time.
               shwrap("""
-              rm -rf ${local_builddir}
               mkdir -p ${local_builddir}
-              cp -aT builds ${local_builddir}
+              rsync -avh builds/ ${local_builddir}
               """)
             }
         }
@@ -581,7 +586,8 @@ lock(resource: "build-${params.STREAM}") {
             parallelruns['OSTree Import: Compose Repo'] = {
                 shwrap("""
                 /var/tmp/fcos-releng/coreos-ostree-importer/send-ostree-import-request.py \
-                    --build=${newBuildID} --s3=${s3_stream_dir} --repo=compose \
+                    --build=${newBuildID} --arch=${basearch} \
+                    --s3=${s3_stream_dir} --repo=compose \
                     --fedmsg-conf=/etc/fedora-messaging-cfg/fedmsg.toml
                 """)
             }
@@ -603,6 +609,7 @@ lock(resource: "build-${params.STREAM}") {
                     string(name: 'STREAM', value: params.STREAM),
                     string(name: 'VERSION', value: newBuildID),
                     string(name: 'S3_STREAM_DIR', value: s3_stream_dir),
+                    string(name: 'ARCH', value: basearch),
                     string(name: 'FCOS_CONFIG_COMMIT', value: fcos_config_commit)
                 ]
             }
@@ -650,6 +657,7 @@ lock(resource: "build-${params.STREAM}") {
                     string(name: 'STREAM', value: params.STREAM),
                     string(name: 'VERSION', value: newBuildID),
                     string(name: 'S3_STREAM_DIR', value: s3_stream_dir),
+                    string(name: 'ARCH', value: basearch),
                     string(name: 'FCOS_CONFIG_COMMIT', value: fcos_config_commit)
                 ]
             }
@@ -684,7 +692,7 @@ lock(resource: "build-${params.STREAM}") {
             throw e
         } finally {
             def color
-            def message = "[${params.STREAM}] <${env.BUILD_URL}|${env.BUILD_NUMBER}>"
+            def message = "[${params.STREAM}][${basearch}] <${env.BUILD_URL}|${env.BUILD_NUMBER}>"
 
             if (currentBuild.result == 'SUCCESS') {
                 if (!newBuildID) {
