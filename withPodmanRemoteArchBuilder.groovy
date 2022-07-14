@@ -9,4 +9,5 @@ def call(params = [:], Closure body) {
                      remoteUid:  "fcos-${arch}-builder-uid-string",
                      sshKey:     "fcos-${arch}-builder-sshkey-key") {
         body()
+    }
 }
