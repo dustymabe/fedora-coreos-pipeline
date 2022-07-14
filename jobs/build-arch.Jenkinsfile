@@ -265,6 +265,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
 
                 # sync over AWS secret if it exists
                 if [ -f \${AWS_FCOS_BUILDS_BOT_CONFIG} ]; then
+                    cosa shell sudo mkdir -p --chmod 777 \$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
                     cosa remote-session sync           \
                         \${AWS_FCOS_BUILDS_BOT_CONFIG} \
                         :\${AWS_FCOS_BUILDS_BOT_CONFIG}
@@ -272,9 +273,11 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
 
                 # sync over Fedora Messaging config/secrets if they exist
                 if [ -f /etc/fedora-messaging-cfg/fedmsg.toml ]; then
+                    cosa shell sudo mkdir -p --chmod 777 /etc/fedora-messaging-cfg
                     cosa remote-session sync                   \
                         /etc/fedora-messaging-cfg/fedmsg.toml  \
                         :/etc/fedora-messaging-cfg/fedmsg.toml
+                    cosa shell sudo mkdir -p --chmod 777 /run/kubernetes/secrets/fedora-messaging-coreos-key
                     cosa remote-session sync                                 \
                         /run/kubernetes/secrets/fedora-messaging-coreos-key/ \
                         :/run/kubernetes/secrets/fedora-messaging-coreos-key/
