@@ -193,7 +193,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
         if (params.FCOS_CONFIG_COMMIT) {
             fcos_config_commit = params.FCOS_CONFIG_COMMIT
         } else {
-            fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d $'\t' -f 1")
+            fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d \$'\t' -f 1")
         }
 
         stage('Init') {
