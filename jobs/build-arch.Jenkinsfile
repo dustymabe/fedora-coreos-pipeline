@@ -2,13 +2,13 @@ import org.yaml.snakeyaml.Yaml;
 
 def pipeutils, streams, official, uploading, session
 def src_config_url, src_config_ref, s3_bucket
-def pr
+//def pr
 node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
     pod = readFile(file: "manifests/pod.yaml")
-    pr = load("withPodmanRemoteArchBuilder.groovy")
+//  pr = load("withPodmanRemoteArchBuilder.groovy")
 
     def pipecfg = pipeutils.load_config()
     src_config_url = pipecfg['source-config-url']
@@ -249,7 +249,10 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             }
         }
 
-        pr.withPodmanRemoteArchBuilder(arch: basearch) {
+//      pr.withPodmanRemoteArchBuilder(arch: basearch) {
+        withPodmanRemote(remoteHost: "fcos-${basearch}-builder-host-string",
+                         remoteUid:  "fcos-${basearch}-builder-uid-string",
+                         sshKey:     "fcos-${basearch}-builder-sshkey-key") {
 
         stage('Init Remote') {
 
