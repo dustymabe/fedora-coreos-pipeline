@@ -249,8 +249,6 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             }
         }
 
-        def new_version = ${params.VERSION}
-
         pr.withPodmanRemoteArchBuilder(arch: basearch) {
 
         stage('Init Remote') {
@@ -300,7 +298,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             if (parent_version != "") {
                 parent_arg = "--parent-build ${parent_version}"
             }
-            def version = new_version ? "--version ${new_version}" : ""
+            def version = "--version ${params.VERSION}"
             def force = params.FORCE ? "--force" : ""
             shwrap("""
             cosa build ostree ${strict_build_param} --skip-prune ${force} ${version} ${parent_arg}
