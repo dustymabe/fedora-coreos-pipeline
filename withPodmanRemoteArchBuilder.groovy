@@ -11,3 +11,5 @@ def withPodmanRemoteArchBuilder(params = [:], Closure body) {
         body()
     }
 }
+
+return this
