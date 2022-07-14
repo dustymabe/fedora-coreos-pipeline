@@ -3,7 +3,7 @@
 //
 // Available parameters:
 //    arch:  string -- The architecture of the desired host
-def call(params = [:], Closure body) {
+def withPodmanRemoteArchBuilder(params = [:], Closure body) {
     arch = params['arch']
     withPodmanRemote(remoteHost: "fcos-${arch}-builder-host-string",
                      remoteUid:  "fcos-${arch}-builder-uid-string",
