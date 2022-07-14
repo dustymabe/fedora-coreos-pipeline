@@ -7,6 +7,6 @@ def call(params = [:], Closure body) {
     arch = params['arch']
     withPodmanRemote(remoteHost: "fcos-${arch}-builder-host-string",
                      remoteUid:  "fcos-${arch}-builder-uid-string",
-                     sshKey:     "fcos-${arch}-builder-sshkey-key",) {
+                     sshKey:     "fcos-${arch}-builder-sshkey-key") {
         body()
 }
