@@ -333,9 +333,9 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
         if (official && uploading && utils.pathExists("/etc/fedora-messaging-cfg/fedmsg.toml")) {
             stage('Sign OSTree') {
                 shwrap("""
-                export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
                 cosa sign --build=${newBuildID} --arch=${basearch} \
                     robosignatory --s3 ${s3_stream_dir}/builds \
+                    --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG} \
                     --extra-fedmsg-keys stream=${params.STREAM} \
                     --ostree --gpgkeypath /etc/pki/rpm-gpg \
                     --fedmsg-conf /etc/fedora-messaging-cfg/fedmsg.toml
@@ -378,10 +378,11 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             shwrap("""
             cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
             cosa shell -- tar -c --xz tmp/kola/ > kola-run-basic.tar.xz
+            cosa shell -- cat tmp/kola/reports/report.json > /tmp/report.json
             """)
             archiveArtifacts "kola-run-basic.tar.xz"
         }
-        if (!pipeutils.checkKolaSuccess("tmp/kola")) {
+        if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
             error('Kola:QEMU basic')
         }
 
@@ -393,9 +394,10 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             shwrap("""
             cosa kola run --rerun --parallel 5 --no-test-exit-error
             cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
+            cosa shell -- cat tmp/kola/reports/report.json > /tmp/report.json
             """)
             archiveArtifacts "kola-run.tar.xz"
-            if (!pipeutils.checkKolaSuccess("tmp/kola")) {
+            if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
                 error('Kola:QEMU')
             }
         }
@@ -409,9 +411,10 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                 shwrap("""
                 cosa kola --rerun --upgrades --no-test-exit-error
                 cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.tar.xz
+                cosa shell -- cat tmp/kola-upgrade/reports/report.json > /tmp/report.json
                 """)
                 archiveArtifacts "kola-run-upgrade.tar.xz"
-                if (!pipeutils.checkKolaSuccess("tmp/kola-upgrade")) {
+                if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
                     error('Kola:QEMU Upgrade')
                 }
             } catch(e) {
@@ -586,9 +589,9 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             parallelruns = [:]
             parallelruns['Sign Images'] = {
                 shwrap("""
-                export AWS_CONFIG_FILE=\${AWS_FCOS_BUILDS_BOT_CONFIG}
                 cosa sign --build=${newBuildID} --arch=${basearch} \
                     robosignatory --s3 ${s3_stream_dir}/builds \
+                    --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG} \
                     --extra-fedmsg-keys stream=${params.STREAM} \
                     --images --gpgkeypath /etc/pki/rpm-gpg \
                     --fedmsg-conf /etc/fedora-messaging-cfg/fedmsg.toml
