@@ -215,9 +215,9 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             # sync over AWS secret if it exists
             if [ -f \${AWS_FCOS_BUILDS_BOT_CONFIG} ]; then
                 dir=\$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
-                cosa shell -- sudo install -d -D -o \$UID --mode 777 \${dir}
+                cosa shell -- sudo install -d -D -o builder -g builder --mode 777 \${dir}
                 cosa remote-session sync \${dir}/ :\${dir}/
-                cosa shell -- sudo install -d -D -o \$UID --mode 777 /path/to/\${dir}
+                cosa shell -- sudo install -d -D -o builder -g builder --mode 777 /path/to/\${dir}
                 cosa remote-session sync \${dir}/ :/path/to/\${dir}/
             fi
 
