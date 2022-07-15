@@ -232,6 +232,8 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                     :/run/kubernetes/secrets/fedora-messaging-coreos-key/
             fi
 
+            sleep 10m
+
             cosa init --force --branch ${ref} --commit=${fcos_config_commit} ${src_config_url}
             """)
 
