@@ -2,13 +2,11 @@ import org.yaml.snakeyaml.Yaml;
 
 def pipeutils, streams, official, uploading, session
 def src_config_url, src_config_ref, s3_bucket
-//def pr
 node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
     pod = readFile(file: "manifests/pod.yaml")
-//  pr = load("withPodmanRemoteArchBuilder.groovy")
 
     def pipecfg = pipeutils.load_config()
     src_config_url = pipecfg['source-config-url']
@@ -39,12 +37,11 @@ properties([
              description: 'Fedora CoreOS stream to build'),
       string(name: 'VERSION',
              description: 'Build version',
-             defaultValue: '36.20220714.dev.0',
+             defaultValue: '',
              trim: true),
       string(name: 'ARCH',
              description: 'The target architecture',
-             choices: "aarch64",
-             defaultValue: 'aarch64',
+             choices: streams.additional_arches,
              trim: true),
       booleanParam(name: 'FORCE',
                    defaultValue: false,
@@ -70,7 +67,7 @@ properties([
                    description: 'Do not upload results to S3; for debugging purposes.'),
       string(name: 'FCOS_CONFIG_COMMIT',
              description: 'The exact config repo git commit to build against',
-             defaultValue: 'd505b53f6a209dd0e3780425763aa421493d6483',
+             defaultValue: '',
              trim: true),
     ]),
     buildDiscarder(logRotator(
@@ -568,17 +565,6 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
 
         } // end withEnv
         } // end withPodmanRemote
-
-////////stage('Sync Data') {
-////////    def meta_json = "builds/${newBuildID}/${basearch}/meta.json"
-////////    shwrap("""
-////////    mkdir -p $(dirname ${meta_json})
-////////    ln -sf ./${newBuildID} builds/latest
-////////    cosa remote-session sync :${meta_json} ${meta_json}
-////////    cosa remote-session sync :builds/builds.json builds/builds.json
-////////    cosa remote-session destroy
-////////    """)
-////////}
 
         // These steps interact with Fedora Infrastructure/Releng for
         // signing of artifacts and importing of OSTree commits. They
