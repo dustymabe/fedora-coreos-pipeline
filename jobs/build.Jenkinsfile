@@ -336,11 +336,11 @@ lock(resource: "build-${params.STREAM}") {
             shwrap("""
             cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
             cosa shell -- tar -c --xz tmp/kola/ > kola-run-basic.tar.xz
-            cosa shell -- cat tmp/kola/reports/report.json > /tmp/report.json
+            cosa shell -- cat tmp/kola/reports/report.json > report.json
             """)
             archiveArtifacts "kola-run-basic.tar.xz"
         }
-        if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
+        if (!pipeutils.checkKolaSuccess("report.json")) {
             error('Kola:QEMU basic')
         }
 
@@ -354,10 +354,10 @@ lock(resource: "build-${params.STREAM}") {
             shwrap("""
             cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
             cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
-            cosa shell -- cat tmp/kola/reports/report.json > /tmp/report.json
+            cosa shell -- cat tmp/kola/reports/report.json > report.json
             """)
             archiveArtifacts "kola-run.tar.xz"
-            if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
+            if (!pipeutils.checkKolaSuccess("report.json")) {
                 error('Kola:QEMU')
             }
         }
@@ -371,10 +371,10 @@ lock(resource: "build-${params.STREAM}") {
                 shwrap("""
                 cosa kola --rerun --upgrades --no-test-exit-error
                 cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.tar.xz
-                cosa shell -- cat tmp/kola-upgrade/reports/report.json > /tmp/report.json
+                cosa shell -- cat tmp/kola-upgrade/reports/report.json > report.json
                 """)
                 archiveArtifacts "kola-run-upgrade.tar.xz"
-                if (!pipeutils.checkKolaSuccess("/tmp/report.json")) {
+                if (!pipeutils.checkKolaSuccess("report.json")) {
                     error('Kola:QEMU Upgrade')
                 }
             } catch(e) {
