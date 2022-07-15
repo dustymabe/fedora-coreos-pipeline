@@ -311,8 +311,9 @@ lock(resource: "build-${params.STREAM}") {
             shwrap("""
             cosa generate-hashlist --arch=${basearch} --release=${newBuildID} \
                 --output=builds/${newBuildID}/${basearch}/exp-hash.json
-            sha256sum builds/${newBuildID}/${basearch}/exp-hash.json \
-                > builds/${newBuildID}/${basearch}/exp-hash.json-CHECKSUM
+            source="builds/${newBuildID}/${basearch}/exp-hash.json"
+            target="builds/${newBuildID}/${basearch}/exp-hash.json-CHECKSUM"
+            cosa shell -- bash -c "sha256sum \$source > \$target"
             """)
         }
 
