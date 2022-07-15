@@ -198,14 +198,44 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d \$'\t' -f 1")
         }
 
+        withPodmanRemote(remoteHost: "fcos-${basearch}-builder-host-string",
+                         remoteUid:  "fcos-${basearch}-builder-uid-string",
+                         sshKey:     "fcos-${basearch}-builder-sshkey-key") {
+
+        // Wrap a bunch of commands now inside the context of the
+        // remote session. All `cosa` commands, other than `cosa
+        // remote-session` commands, should get intercepted
+        // and executed on the remote.
+        session = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+        withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${session}"]) {
+
         stage('Init') {
 
             shwrap("""
+            # sync over AWS secret if it exists
+            if [ -f \${AWS_FCOS_BUILDS_BOT_CONFIG} ]; then
+                cosa shell -- sudo mkdir -p --mode 777 \$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
+                cosa remote-session sync           \
+                    \${AWS_FCOS_BUILDS_BOT_CONFIG} \
+                    :\${AWS_FCOS_BUILDS_BOT_CONFIG}
+            fi
+
+            # sync over Fedora Messaging config/secrets if they exist
+            if [ -f /etc/fedora-messaging-cfg/fedmsg.toml ]; then
+                cosa shell -- sudo mkdir -p --mode 777 /etc/fedora-messaging-cfg
+                cosa remote-session sync                   \
+                    /etc/fedora-messaging-cfg/fedmsg.toml  \
+                    :/etc/fedora-messaging-cfg/fedmsg.toml
+                cosa shell -- sudo mkdir -p --mode 777 /run/kubernetes/secrets/fedora-messaging-coreos-key
+                cosa remote-session sync                                 \
+                    /run/kubernetes/secrets/fedora-messaging-coreos-key/ \
+                    :/run/kubernetes/secrets/fedora-messaging-coreos-key/
+            fi
+
             cosa init --force --branch ${ref} --commit=${fcos_config_commit} ${src_config_url}
             """)
 
         }
-
 
         // Determine parent version/commit information
         def parent_version = ""
@@ -233,7 +263,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                 cosa buildfetch --arch=${basearch} \
                     --url s3://${s3_stream_dir}/builds \
                     --aws-config-file \${AWS_FCOS_BUILDS_BOT_CONFIG}
-                """)                                                   
+                """)
                 if (parent_version != "") {
                     // also fetch the parent version; this is used by cosa to do the diff
                     shwrap("""
@@ -244,54 +274,18 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                     """)
                 }
             } else if (utils.pathExists(local_builddir)) {
+                // if using local builddir then sync it from local and
+                // push to the remote
                 shwrap("""
-                cosa buildfetch --url=${local_builddir} --arch=${basearch}
-                """)
-            }
-        }
-
-//      pr.withPodmanRemoteArchBuilder(arch: basearch) {
-        withPodmanRemote(remoteHost: "fcos-${basearch}-builder-host-string",
-                         remoteUid:  "fcos-${basearch}-builder-uid-string",
-                         sshKey:     "fcos-${basearch}-builder-sshkey-key") {
-
-        stage('Init Remote') {
-
-            session = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
-
-            withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${session}"]) {
-                shwrap("""
-                # sync over local context
+                COREOS_ASSEMBLER_REMOTE_SESSION= \
+                    cosa buildfetch --url=${local_builddir} --arch=${basearch}
                 cosa remote-session sync ./ :/srv/
-
-                # sync over AWS secret if it exists
-                if [ -f \${AWS_FCOS_BUILDS_BOT_CONFIG} ]; then
-                    cosa shell -- sudo mkdir -p --mode 777 \$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
-                    cosa remote-session sync           \
-                        \${AWS_FCOS_BUILDS_BOT_CONFIG} \
-                        :\${AWS_FCOS_BUILDS_BOT_CONFIG}
-                fi
-
-                # sync over Fedora Messaging config/secrets if they exist
-                if [ -f /etc/fedora-messaging-cfg/fedmsg.toml ]; then
-                    cosa shell -- sudo mkdir -p --mode 777 /etc/fedora-messaging-cfg
-                    cosa remote-session sync                   \
-                        /etc/fedora-messaging-cfg/fedmsg.toml  \
-                        :/etc/fedora-messaging-cfg/fedmsg.toml
-                    cosa shell -- sudo mkdir -p --mode 777 /run/kubernetes/secrets/fedora-messaging-coreos-key
-                    cosa remote-session sync                                 \
-                        /run/kubernetes/secrets/fedora-messaging-coreos-key/ \
-                        :/run/kubernetes/secrets/fedora-messaging-coreos-key/
-                fi
                 """)
             }
         }
 
-        // Wrap a bunch of commands now inside the context of the
-        // remote session. All `cosa` commands, other than `cosa 
-        // remote-session` commands, should get intercepted
-        // and executed on the remote.
-        withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${session}"]) {
+
+
 
         // fetch from repos for the current build
         stage('Fetch') {
@@ -566,7 +560,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
         }
 
         } // end withEnv
-        } // end withPodmanRemoteArchBuilder
+        } // end withPodmanRemote
 
 ////////stage('Sync Data') {
 ////////    def meta_json = "builds/${newBuildID}/${basearch}/meta.json"
