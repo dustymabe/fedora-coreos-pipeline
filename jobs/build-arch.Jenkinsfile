@@ -214,10 +214,9 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             shwrap("""
             # sync over AWS secret if it exists
             if [ -f \${AWS_FCOS_BUILDS_BOT_CONFIG} ]; then
-                cosa shell -- sudo mkdir -p --mode 777 \$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
-                cosa remote-session sync           \
-                    \${AWS_FCOS_BUILDS_BOT_CONFIG} \
-                    :\${AWS_FCOS_BUILDS_BOT_CONFIG}
+                local dir=\$(dirname \${AWS_FCOS_BUILDS_BOT_CONFIG})
+                cosa shell -- sudo mkdir -p --mode 777 \${dir}
+                cosa remote-session sync \${dir} :\${dir}
             fi
 
             # sync over Fedora Messaging config/secrets if they exist
