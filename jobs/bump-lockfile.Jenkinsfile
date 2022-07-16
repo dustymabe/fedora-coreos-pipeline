@@ -86,7 +86,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         parallel x86_64: {
             shwrap("cosa fetch --update-lockfile --dry-run")
         }, aarch64: {
-            remote.withExistingCOSARemoteSession(arch: basearch,
+            remote.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("""
                 cosa remote-session sync --quiet ./ :/srv/"
@@ -138,7 +138,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     if (haveChanges) {
         // Run tests across all architectures in parallel
         parallel aarch64: {
-            remote.withExistingCOSARemoteSession(arch: basearch,
+            remote.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
             stage("Fetch") {
                 shwrap("cosa fetch --strict")
@@ -214,7 +214,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // Destroy the remote sessions. We don't need them anymore
     stage("Destroy Remotes") {
         parallel aarch64: {
-            remote.withExistingCOSARemoteSession(arch: basearch,
+            remote.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("cosa remote-session destroy")
             }
