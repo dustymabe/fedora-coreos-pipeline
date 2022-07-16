@@ -352,7 +352,7 @@ lock(resource: "build-${params.STREAM}") {
             // leave 512M for overhead & 1G for upgrade test; VMs are 1G each
             def parallel = ((cosa_memory_request_mb - 1536) / 1024) as Integer
             shwrap("""
-            cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
+            cosa kola run --rerun --parallel ${parallel} --no-test-exit-error fcos.filesystem
             cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
             cosa shell -- cat tmp/kola/reports/report.json > report.json
             """)
@@ -417,7 +417,9 @@ lock(resource: "build-${params.STREAM}") {
                     build job: 'build-arch', wait: false, parameters: [
                         booleanParam(name: 'FORCE', value: params.FORCE),
                         booleanParam(name: 'MINIMAL', value: params.MINIMAL),
+                        booleanParam(name: 'ALLOW_KOLA_UPGRADE_FAILURE', value: params.ALLOW_KOLA_UPGRADE_FAILURE),
                         string(name: 'FCOS_CONFIG_COMMIT', value: fcos_config_commit),
+                        string(name: 'COREOS_ASSEMBLER_IMAGE', value: params.COREOS_ASSEMBLER_IMAGE),
                         string(name: 'COREOS_ASSEMBLER_IMAGE', value: params.COREOS_ASSEMBLER_IMAGE),
                         string(name: 'STREAM', value: params.STREAM),
                         string(name: 'VERSION', value: newBuildID),
