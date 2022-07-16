@@ -136,16 +136,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // The bulk of the work (build, test, etc) is done in the following.
     // We only need to do that work if we have changes.
     if (haveChanges) {
-        // Get the local diff to the manifest lockfiles and capture them in a variable
-        // that we will later apply in a prep stage. This is a huge hack. We need to
-        // convey to the multi-arch builder(s) the updated manifest lockfiles but we
-        // don't have a good way to copy files over using gangplank so we'll just
-        // apply the changes this way.
-        //
-        // do an explicit `git add` in case there is a new lockfile
-        shwrap("git -C src/config add manifest-lock.*.json")
-        def patch = shwrapCapture("git -C src/config diff --cached | base64 -w 0")
-
         // Run tests across all architectures in parallel
         parallel aarch64: {
             remote.withExistingCOSARemoteSession(arch: basearch,
@@ -239,6 +229,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         if (!haveChanges && forceTimestamp) {
             message="lockfiles: bump timestamp"
         }
+        shwrap("git -C src/config add manifest-lock.*.json")
         shwrap("git -C src/config commit -m '${message}' -m 'Job URL: ${env.BUILD_URL}' -m 'Job definition: https://github.com/coreos/fedora-coreos-pipeline/blob/main/jobs/bump-lockfile.Jenkinsfile'")
         withCredentials([usernamePassword(credentialsId: botCreds,
                                           usernameVariable: 'GHUSER',
