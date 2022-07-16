@@ -133,6 +133,82 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
       done
     """)
 
+    // The bulk of the work (build, test, etc) is done in the following.
+    // We only need to do that work if we have changes.
+    if (haveChanges) {
+        // Run tests across all architectures in parallel
+        parallel "aarch64": {
+            remote.withExistingCOSARemoteSession(arch: "aarch64",
+                                                 session: sessionaarch64) {
+            stage("Fetch") {
+                shwrap("cosa fetch --strict")
+            }
+            stage("Build") {
+                shwrap("cosa build --force --strict")
+            }
+            fcosKola(cosaDir: env.WORKSPACE)
+            stage("Build Metal") {
+                shwrap("cosa buildextend-metal")
+                shwrap("cosa buildextend-metal4k")
+            }
+            stage("Build Live") {
+                shwrap("cosa buildextend-live --fast")
+                // Test metal4k with an uncompressed image and metal with a
+                // compressed one
+                shwrap("cosa compress --artifact=metal")
+            }
+            try {
+                parallel metal: {
+                    shwrap("cosa kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
+                }, metal4k: {
+                    shwrap("cosa kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
+                }
+            } finally {
+                shwrap("""
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.aarch64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.aarch64.tar.xz
+				""")
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*aarch64.tar.xz'
+            }
+            } // end withExistingCOSARemoteSession
+        }, x86_64: {
+            stage("Fetch") {
+                shwrap("cosa fetch --strict")
+            }
+            stage("Build") {
+                shwrap("cosa build --force --strict")
+            }
+            fcosKola(cosaDir: env.WORKSPACE)
+            stage("Build Metal") {
+                shwrap("cosa buildextend-metal")
+                shwrap("cosa buildextend-metal4k")
+            }
+            stage("Build Live") {
+                shwrap("cosa buildextend-live --fast")
+                // Test metal4k with an uncompressed image and metal with a
+                // compressed one
+                shwrap("cosa compress --artifact=metal")
+            }
+            try {
+                parallel metal: {
+                    shwrap("kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
+                }, metal4k: {
+                    shwrap("kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
+                }, uefi: {
+                    shwrap("cosa shell -- mkdir -p tmp/kola-testiso-uefi")
+                    shwrap("cosa kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/insecure")
+                    shwrap("cosa kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/secure")
+                }
+            } finally {
+                shwrap("""
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.x86_64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.x86_64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-uefi/ > kola-testiso-uefi.x86_64.tar.xz
+				""")
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.x86_64.tar.xz'
+            }
+        }
+    }
 
     // Destroy the remote sessions. We don't need them anymore
     stage("Destroy Remotes") {
