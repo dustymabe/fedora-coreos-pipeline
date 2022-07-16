@@ -60,7 +60,7 @@ properties([
              defaultValue: "coreos-assembler:main",
              trim: true),
       booleanParam(name: 'KOLA_RUN_SLEEP',
-                   defaultValue: false,
+                   defaultValue: true,
                    description: 'Wait forever at kola tests stage. Implies NO_UPLOAD'),
       booleanParam(name: 'NO_UPLOAD',
                    defaultValue: false,
@@ -483,9 +483,6 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                         shwrap("cosa kola testiso -S --output-dir tmp/kola-testiso-metal")
                     }, metal4k: {
                         shwrap("cosa kola testiso -SP --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
-                    }, uefi: {
-                        shwrap("cosa shell -- mkdir -p tmp/kola-testiso-uefi")
-                        shwrap("cosa kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/insecure")
                     }
                 } catch (Throwable e) {
                     throw e
@@ -493,7 +490,6 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                     shwrap("""
                     cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.tar.xz
                     cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.tar.xz
-                    cosa shell -- tar -c --xz tmp/kola-testiso-uefi/ > kola-testiso-uefi-metal4k.tar.xz
                     """)
                     archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.tar.xz'
                 }
