@@ -137,7 +137,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // We only need to do that work if we have changes.
     if (haveChanges) {
         // Run tests across all architectures in parallel
-        parallel aarch64: {
+        parallel "aarch64": {
             remote.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
             stage("Fetch") {
