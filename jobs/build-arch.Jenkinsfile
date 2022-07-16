@@ -557,10 +557,8 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             }
         }
 
-        stage('Clean Remote') {
-            shwrap("""
-            cosa remote-session destroy
-            """)
+        stage('Destroy Remote') {
+            shwrap("cosa remote-session destroy")
         }
 
         } // end withEnv
