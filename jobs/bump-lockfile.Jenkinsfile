@@ -1,5 +1,5 @@
 def pipeutils, streams, official
-def remote, session-aarch64, session-s390x
+def remote, sessionaarch64, sessions390x
 node {
     checkout scm
     pipeutils = load("utils.groovy")
@@ -75,11 +75,11 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     stage("Initialize Remotes") {
         parallel aarch64: {
             remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
-                session-aarch64 = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+                sessionaarch64 = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
             }
 //      }, s390x: {
 //          remote.withPodmanRemoteArchBuilder(arch: "s390x") {
-//              session-s390x = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+//              sessions390x = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
 //          }
         }
     }
@@ -91,7 +91,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             shwrap("cosa fetch --update-lockfile --dry-run")
         }, aarch64: {
             remote.withExistingCOSARemoteSession(arch: basearch,
-                                                 session: session-aarch64) {
+                                                 session: sessionaarch64) {
                 shwrap("""
                 cosa remote-session sync --quiet ./ :/srv/"
                 cosa fetch --update-lockfile --dry-run"
@@ -100,7 +100,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             }
 //      }, s390x: {
 //          remote.withExistingCOSARemoteSession(arch: basearch,
-//                                               session: session-s390x) {
+//                                               session: sessions390x) {
 //              shwrap("""
 //              cosa remote-session sync --quiet ./ :/srv/"
 //              cosa fetch --update-lockfile --dry-run"
@@ -162,7 +162,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         // Run aarch64/x86_64 in parallel
         parallel aarch64: {
             remote.withExistingCOSARemoteSession(arch: basearch,
-                                                 session: session-aarch64) {
+                                                 session: sessionaarch64) {
             stage("Fetch") {
                 shwrap("cosa fetch --strict")
             }
@@ -271,12 +271,12 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     stage("Destroy Remotes") {
         parallel aarch64: {
             remote.withExistingCOSARemoteSession(arch: basearch,
-                                                 session: session-aarch64) {
+                                                 session: sessionaarch64) {
                 shwrap("cosa remote-session destroy")
             }
 //      }, s390x: {
 //          remote.withExistingCOSARemoteSession(arch: basearch,
-//                                               session: session-s390x) {
+//                                               session: sessions390x) {
 //              shwrap("cosa remote-session destroy")
 //          }
         }
