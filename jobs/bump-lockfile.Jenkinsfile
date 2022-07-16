@@ -1,9 +1,10 @@
-def pipeutils, streams, official, gp
+def pipeutils, streams, official
+def remote, session-aarch64, session-s390x
 node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
-    gp = load("gp.groovy")
+    remote = load("withPodmanRemoteArchBuilder.groovy")
     def pipecfg = pipeutils.load_config()
     official = pipeutils.isOfficial()
 }
@@ -58,15 +59,29 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     def forceTimestamp = false
     def haveChanges = false
     shwrap("cosa init --branch ${branch} https://github.com/${repo}")
-    shwrap("cosa buildfetch --url=${BUILDS_BASE_HTTP_URL}/${branch}/builds")
+    shwrap("cosa buildfetch --arch=all --url=${BUILDS_BASE_HTTP_URL}/${branch}/builds")
 
     def lockfile, pkgChecksum, pkgTimestamp
-    def archinfo = [x86_64: [:], aarch64: [:], s390x: [:]]
+    def archinfo = [x86_64: [:], aarch64: [:]]
+/// def archinfo = [x86_64: [:], aarch64: [:], s390x: [:]]
     for (arch in archinfo.keySet()) {
         lockfile = "src/config/manifest-lock.${arch}.json"
         (pkgChecksum, pkgTimestamp) = getLockfileInfo(lockfile)
         archinfo[arch]['prevPkgChecksum'] = pkgChecksum
         archinfo[arch]['prevPkgTimestamp'] = pkgTimestamp
+    }
+
+    // Initialize the sessions on the remote builders
+    stage("Initialize Remotes") {
+        parallel aarch64: {
+            remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
+                session-aarch64 = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+            }
+//      }, s390x: {
+//          remote.withPodmanRemoteArchBuilder(arch: "s390x") {
+//              session-s390x = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+//          }
+        }
     }
 
     // do a first fetch where we only fetch metadata; no point in
@@ -75,11 +90,23 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         parallel x86_64: {
             shwrap("cosa fetch --update-lockfile --dry-run")
         }, aarch64: {
-            shwrap("cosa fetch --update-lockfile --dry-run")
-            shwrap("cosa remote-session sync {:,}src/config/manifest-lock.aarch64.json")
-        }, s390x: {
-            shwrap("cosa fetch --update-lockfile --dry-run")
-            shwrap("cosa remote-session sync {:,}src/config/manifest-lock.s390x.json")
+            remote.withExistingCOSARemoteSession(arch: basearch,
+                                                 session: session-aarch64) {
+                shwrap("""
+                cosa remote-session sync --quiet ./ :/srv/"
+                cosa fetch --update-lockfile --dry-run"
+                cosa remote-session sync {:,}src/config/manifest-lock.aarch64.json
+                """)
+            }
+//      }, s390x: {
+//          remote.withExistingCOSARemoteSession(arch: basearch,
+//                                               session: session-s390x) {
+//              shwrap("""
+//              cosa remote-session sync --quiet ./ :/srv/"
+//              cosa fetch --update-lockfile --dry-run"
+//              cosa remote-session sync {:,}src/config/manifest-lock.s390x.json
+//              """)
+//          }
         }
     }
 
@@ -133,106 +160,125 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         def patch = shwrapCapture("git -C src/config diff --cached | base64 -w 0")
 
         // Run aarch64/x86_64 in parallel
-        parallel "Fetch/Build/Test aarch64": {
-            shwrap("""
-               cat <<'EOF' > spec.spec
-job:
-  strict: true
-  miniocfgfile: ""
-recipe:
-  git_ref: ${params.STREAM}
-  git_url: https://github.com/${repo}
-stages:
-- id: ExecOrder 1 Stage
-  execution_order: 1
-  description: Stage 1 execution base
-  prep_commands:
-    - cat /cosa/coreos-assembler-git.json
-    - echo '${patch}' | base64 -d | git -C src/config apply
-  post_commands:
-    - cosa fetch --strict
-    - cosa build --force --strict
-    - cosa kola run --rerun --basic-qemu-scenarios --output-dir tmp/kola-basic
-    - cosa kola run --rerun --parallel 4 --output-dir tmp/kola
-    - cosa buildextend-metal
-    - cosa buildextend-metal4k
-    - cosa buildextend-live
-    - kola testiso -S --output-dir tmp/kola-metal
-    - kola testiso -SP --qemu-native-4k --qemu-multipath --scenarios iso-install --output-dir tmp/kola-metal4k
-    - rm -f builds/builds.json # https://github.com/coreos/coreos-assembler/issues/2317
-delay_meta_merge: false
-EOF
-                   """)
-            gp.gangplankArchWrapper([spec: "spec.spec", arch: "aarch64"])
-        }, s390x: {
-            shwrap("""
-               cat <<'EOF' > spec.spec
-job:
-  strict: true
-  miniocfgfile: ""
-recipe:
-  git_ref: ${params.STREAM}
-  git_url: https://github.com/${repo}
-stages:
-- id: ExecOrder 1 Stage
-  execution_order: 1
-  description: Stage 1 execution base
-  prep_commands:
-    - cat /cosa/coreos-assembler-git.json
-    - echo '${patch}' | base64 -d | git -C src/config apply
-  post_commands:
-    - cosa fetch --strict
-    - cosa build --force --strict
-    - cosa kola run --rerun --basic-qemu-scenarios --output-dir tmp/kola-basic
-    - cosa kola run --rerun --parallel 4 --output-dir tmp/kola
-    - cosa buildextend-metal
-    - cosa buildextend-metal4k
-    - cosa buildextend-live
-    - kola testiso -S --output-dir tmp/kola-metal
-    - rm -f builds/builds.json # https://github.com/coreos/coreos-assembler/issues/2317
-delay_meta_merge: false
-EOF
-                   """)
-            gp.gangplankArchWrapper([spec: "spec.spec", arch: "s390x"])
-        }, x86_64: {
+        parallel aarch64: {
+            remote.withExistingCOSARemoteSession(arch: basearch,
+                                                 session: session-aarch64) {
             stage("Fetch") {
                 shwrap("cosa fetch --strict")
             }
-
             stage("Build") {
                 shwrap("cosa build --force --strict")
             }
-
             fcosKola(cosaDir: env.WORKSPACE)
-
             stage("Build Metal") {
                 shwrap("cosa buildextend-metal")
                 shwrap("cosa buildextend-metal4k")
             }
-
             stage("Build Live") {
                 shwrap("cosa buildextend-live --fast")
                 // Test metal4k with an uncompressed image and metal with a
                 // compressed one
                 shwrap("cosa compress --artifact=metal")
             }
-
+            try {
+                parallel metal: {
+                    cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.tar.xz
+                    shwrap("cosa kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
+                }, metal4k: {
+                    shwrap("cosa kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
+                }
+            } finally {
+                shwrap("""
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.aarch64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.aarch64.tar.xz
+				""")
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*aarch64.tar.xz'
+            }
+            } // end withExistingCOSARemoteSession
+//      }, s390x: {
+//          remote.withExistingCOSARemoteSession(arch: basearch,
+//          stage("Fetch") {
+//              shwrap("cosa fetch --strict")
+//          }
+//          stage("Build") {
+//              shwrap("cosa build --force --strict")
+//          }
+//          fcosKola(cosaDir: env.WORKSPACE)
+//          stage("Build Metal") {
+//              shwrap("cosa buildextend-metal")
+//              shwrap("cosa buildextend-metal4k")
+//          }
+//          stage("Build Live") {
+//              shwrap("cosa buildextend-live --fast")
+//              // Test metal4k with an uncompressed image and metal with a
+//              // compressed one
+//              shwrap("cosa compress --artifact=metal")
+//          }
+//          try {
+//              stage("Metal") {
+//                  shwrap("cosa kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
+//              }, metal4k: {
+//                  shwrap("cosa kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
+//              }
+//          } finally {
+//              shwrap("""
+//              cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.s390x.tar.xz
+//              cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.s390x.tar.xz
+//  			""")
+//              archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.s390x.tar.xz'
+//          }
+//          } // end withExistingCOSARemoteSession
+        }, x86_64: {
+            stage("Fetch") {
+                shwrap("cosa fetch --strict")
+            }
+            stage("Build") {
+                shwrap("cosa build --force --strict")
+            }
+            fcosKola(cosaDir: env.WORKSPACE)
+            stage("Build Metal") {
+                shwrap("cosa buildextend-metal")
+                shwrap("cosa buildextend-metal4k")
+            }
+            stage("Build Live") {
+                shwrap("cosa buildextend-live --fast")
+                // Test metal4k with an uncompressed image and metal with a
+                // compressed one
+                shwrap("cosa compress --artifact=metal")
+            }
             try {
                 parallel metal: {
                     shwrap("kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
                 }, metal4k: {
                     shwrap("kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
                 }, uefi: {
-                    shwrap("mkdir -p tmp/kola-testiso-uefi")
-                    shwrap("kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/insecure")
-                    shwrap("kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/secure")
+                    shwrap("cosa shell -- mkdir -p tmp/kola-testiso-uefi")
+                    shwrap("cosa kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/insecure")
+                    shwrap("cosa kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/secure")
                 }
             } finally {
-                shwrap("tar -cf - tmp/kola-testiso-metal/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-metal.tar.xz")
-                shwrap("tar -cf - tmp/kola-testiso-metal4k/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-metal4k.tar.xz")
-                shwrap("tar -cf - tmp/kola-testiso-uefi/ | xz -c9 > ${env.WORKSPACE}/kola-testiso-uefi.tar.xz")
-                archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.tar.xz'
+                shwrap("""
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.x86_64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.x86_64.tar.xz
+                cosa shell -- tar -c --xz tmp/kola-testiso-uefi/ > kola-testiso-uefi.x86_64.tar.xz
+				""")
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.x86_64.tar.xz'
             }
+        }
+    }
+
+    // Destroy the remote sessions. We don't need them anymore
+    stage("Destroy Remotes") {
+        parallel aarch64: {
+            remote.withExistingCOSARemoteSession(arch: basearch,
+                                                 session: session-aarch64) {
+                shwrap("cosa remote-session destroy")
+            }
+//      }, s390x: {
+//          remote.withExistingCOSARemoteSession(arch: basearch,
+//                                               session: session-s390x) {
+//              shwrap("cosa remote-session destroy")
+//          }
         }
     }
 
