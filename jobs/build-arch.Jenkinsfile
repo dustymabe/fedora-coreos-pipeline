@@ -484,7 +484,6 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
                     }, uefi: {
                         shwrap("cosa shell -- mkdir -p tmp/kola-testiso-uefi")
                         shwrap("cosa kola testiso -S --qemu-firmware=uefi --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/insecure")
-                        shwrap("cosa kola testiso -S --qemu-firmware=uefi-secure --scenarios iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-uefi/secure")
                     }
                 } catch (Throwable e) {
                     throw e
