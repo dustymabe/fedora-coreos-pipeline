@@ -77,10 +77,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
                 sessionaarch64 = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
             }
-//      }, s390x: {
-//          remote.withPodmanRemoteArchBuilder(arch: "s390x") {
-//              sessions390x = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
-//          }
         }
     }
 
@@ -98,15 +94,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 cosa remote-session sync {:,}src/config/manifest-lock.aarch64.json
                 """)
             }
-//      }, s390x: {
-//          remote.withExistingCOSARemoteSession(arch: basearch,
-//                                               session: sessions390x) {
-//              shwrap("""
-//              cosa remote-session sync --quiet ./ :/srv/"
-//              cosa fetch --update-lockfile --dry-run"
-//              cosa remote-session sync {:,}src/config/manifest-lock.s390x.json
-//              """)
-//          }
         }
     }
 
@@ -159,7 +146,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         shwrap("git -C src/config add manifest-lock.*.json")
         def patch = shwrapCapture("git -C src/config diff --cached | base64 -w 0")
 
-        // Run aarch64/x86_64 in parallel
+        // Run tests across all architectures in parallel
         parallel aarch64: {
             remote.withExistingCOSARemoteSession(arch: basearch,
                                                  session: sessionaarch64) {
@@ -195,39 +182,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*aarch64.tar.xz'
             }
             } // end withExistingCOSARemoteSession
-//      }, s390x: {
-//          remote.withExistingCOSARemoteSession(arch: basearch,
-//          stage("Fetch") {
-//              shwrap("cosa fetch --strict")
-//          }
-//          stage("Build") {
-//              shwrap("cosa build --force --strict")
-//          }
-//          fcosKola(cosaDir: env.WORKSPACE)
-//          stage("Build Metal") {
-//              shwrap("cosa buildextend-metal")
-//              shwrap("cosa buildextend-metal4k")
-//          }
-//          stage("Build Live") {
-//              shwrap("cosa buildextend-live --fast")
-//              // Test metal4k with an uncompressed image and metal with a
-//              // compressed one
-//              shwrap("cosa compress --artifact=metal")
-//          }
-//          try {
-//              stage("Metal") {
-//                  shwrap("cosa kola testiso -S --scenarios pxe-install,iso-install,iso-offline-install,iso-live-login,iso-as-disk --output-dir tmp/kola-testiso-metal")
-//              }, metal4k: {
-//                  shwrap("cosa kola testiso -S --scenarios iso-install,iso-offline-install --qemu-native-4k --qemu-multipath --output-dir tmp/kola-testiso-metal4k")
-//              }
-//          } finally {
-//              shwrap("""
-//              cosa shell -- tar -c --xz tmp/kola-testiso-metal/ > kola-testiso-metal.s390x.tar.xz
-//              cosa shell -- tar -c --xz tmp/kola-testiso-metal4k/ > kola-testiso-metal4k.s390x.tar.xz
-//  			""")
-//              archiveArtifacts allowEmptyArchive: true, artifacts: 'kola-testiso*.s390x.tar.xz'
-//          }
-//          } // end withExistingCOSARemoteSession
         }, x86_64: {
             stage("Fetch") {
                 shwrap("cosa fetch --strict")
@@ -274,11 +228,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                                                  session: sessionaarch64) {
                 shwrap("cosa remote-session destroy")
             }
-//      }, s390x: {
-//          remote.withExistingCOSARemoteSession(arch: basearch,
-//                                               session: sessions390x) {
-//              shwrap("cosa remote-session destroy")
-//          }
         }
     }
 
