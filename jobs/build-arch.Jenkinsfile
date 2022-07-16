@@ -1,12 +1,15 @@
 import org.yaml.snakeyaml.Yaml;
 
-def pipeutils, streams, official, uploading, session
+def pipeutils, streams, official, uploading
 def src_config_url, src_config_ref, s3_bucket
+def remote, session
 node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
     pod = readFile(file: "manifests/pod.yaml")
+    remote = load("withPodmanRemoteArchBuilder.groovy")
+
 
     def pipecfg = pipeutils.load_config()
     src_config_url = pipecfg['source-config-url']
@@ -195,14 +198,15 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
             fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d \$'\t' -f 1")
         }
 
-        withPodmanRemote(remoteHost: "fcos-${basearch}-builder-host-string",
-                         remoteUid:  "fcos-${basearch}-builder-uid-string",
-                         sshKey:     "fcos-${basearch}-builder-sshkey-key") {
 
-        // Wrap a bunch of commands now inside the context of the
-        // remote session. All `cosa` commands, other than `cosa
-        // remote-session` commands, should get intercepted
-        // and executed on the remote.
+        // Wrap a bunch of commands now inside the context of a remote
+        // session. All `cosa` commands, other than `cosa remote-session`
+        // commands, should get intercepted and executed on the remote.
+        // We set environment variables that describe our remote host
+        // that `podman --remote` will transparently pick up and use.
+        // We set the session to time out after 4h. This essentially
+        // performs garbage collection on the remote if we fail to clean up.
+        remote.withPodmanRemoteArchBuilder(arch: basearch) {
         session = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
         withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${session}"]) {
 
@@ -560,7 +564,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
         }
 
         } // end withEnv
-        } // end withPodmanRemote
+        } // end withPodmanRemoteArchBuilder
 
         // These steps interact with Fedora Infrastructure/Releng for
         // signing of artifacts and importing of OSTree commits. They
