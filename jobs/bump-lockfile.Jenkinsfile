@@ -197,7 +197,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 cosa shell -- tar -c --xz tmp/kola/ > kola-run.aarch64.tar.xz
                 cosa shell -- cat tmp/kola/reports/report.json > report-kola.aarch64.json
                 """)
-                archiveArtifacts "kola-run.tar.xz
+                archiveArtifacts "kola-run.aarch64.tar.xz"
                 if (!pipeutils.checkKolaSuccess("report-kola.aarch64.json")) {
                     error('Kola:QEMU')
                 }
@@ -263,7 +263,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 cosa shell -- tar -c --xz tmp/kola/ > kola-run.x86_64.tar.xz
                 cosa shell -- cat tmp/kola/reports/report.json > report-kola.x86_64.json
                 """)
-                archiveArtifacts "kola-run.tar.xz
+                archiveArtifacts "kola-run.x86_64.tar.xz"
                 if (!pipeutils.checkKolaSuccess("report-kola.x86_64.json")) {
                     error('Kola:QEMU')
                 }
