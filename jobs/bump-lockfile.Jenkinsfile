@@ -75,7 +75,10 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     stage("Initialize Remotes") {
         parallel aarch64: {
             remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
-                sessionaarch64 = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
+                sessionaarch64 = shwrapCapture("""
+                cosa remote-session create --expiration 4h \
+                    --image localhost/coreos-assembler:latest
+                """)
             }
         }
     }
