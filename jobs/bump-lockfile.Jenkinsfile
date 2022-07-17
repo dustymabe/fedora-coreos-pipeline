@@ -22,11 +22,11 @@ properties([
         choice(name: 'STREAM',
                choices: streams.development,
                description: 'Fedora CoreOS development stream to bump'),
+        string(name: 'COREOS_ASSEMBLER_IMAGE',
+               description: 'Override coreos-assembler image to use',
+               defaultValue: "coreos-assembler:main",
+               trim: true),
     ]),
-    string(name: 'COREOS_ASSEMBLER_IMAGE',
-           description: 'Override coreos-assembler image to use',
-           defaultValue: "coreos-assembler:main",
-           trim: true),
     buildDiscarder(logRotator(
         numToKeepStr: '100',
         artifactNumToKeepStr: '100'
