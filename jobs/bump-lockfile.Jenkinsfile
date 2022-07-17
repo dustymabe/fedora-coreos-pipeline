@@ -120,7 +120,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             remote.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("""
-                cosa remote-session sync --quiet ./ :/srv/"
                 cosa fetch --update-lockfile --dry-run"
                 cosa remote-session sync {:,}src/config/manifest-lock.aarch64.json
                 """)
