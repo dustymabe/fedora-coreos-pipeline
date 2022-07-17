@@ -105,7 +105,10 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 cosa remote-session create --image ${image} --expiration 4h
                 """)
                 withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${sessionaarch64}"]) {
-                    shwrap("cosa remote-session sync --quiet ./ :/srv/")
+                    //shwrap("cosa remote-session sync --quiet ./ :/srv/")
+                    shwrap("""
+                    cosa init --force https://github.com/coreos/fedora-coreos-config.git
+                    """)
                 }
             }
         }
