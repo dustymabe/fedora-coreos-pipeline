@@ -104,6 +104,9 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 sessionaarch64 = shwrapCapture("""
                 cosa remote-session create --image ${image} --expiration 4h
                 """)
+                withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${sessionaarch64}"]) {
+                    shwrap("cosa remote-session sync --quiet ./ :/srv/")
+                }
             }
         }
     }
