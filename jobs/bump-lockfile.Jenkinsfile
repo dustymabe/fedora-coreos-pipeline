@@ -23,6 +23,10 @@ properties([
                choices: streams.development,
                description: 'Fedora CoreOS development stream to bump'),
     ]),
+    string(name: 'COREOS_ASSEMBLER_IMAGE',
+           description: 'Override coreos-assembler image to use',
+           defaultValue: "coreos-assembler:main",
+           trim: true),
     buildDiscarder(logRotator(
         numToKeepStr: '100',
         artifactNumToKeepStr: '100'
@@ -46,7 +50,9 @@ def getLockfileInfo(lockfile) {
     return [pkgChecksum, pkgTimestamp]
 }
 
-try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTES') { cosaPod {
+try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTES') { 
+    cosaPod(image: params.COREOS_ASSEMBLER_IMAGE,
+            secrets: ["fcos-aarch64-builder-sshkey-key"]) {
     currentBuild.description = "[${params.STREAM}] Running"
 
     // set up git user upfront
@@ -71,13 +77,32 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         archinfo[arch]['prevPkgTimestamp'] = pkgTimestamp
     }
 
+    // We currently have a limitation where we aren't building and
+    // pushing multi-arch COSA containers to quay. For multi-arch
+    // we're currently building images once a day on the local
+    // multi-arch builders. See https://github.com/coreos/coreos-assembler/issues/2470
+    //
+    // Until #2470 is resolved let's do the best thing we can do
+    // which is derive the multi-arch container name from the
+    // given x86_64 COSA container. We'll translate
+    // quay.io/coreos-assembler/coreos-assembler:$tag -> localhost/coreos-assembler:$tag
+    // This assumes that the desired tagged image has been built
+    // on the multi-arch builder already, which most likely means
+    // someone did it manually.
+    def image = "localhost/coreos-assembler:latest"
+    if (params.COREOS_ASSEMBLER_IMAGE.startsWith("quay.io/coreos-assembler/coreos-assembler:")) {
+        image = params.COREOS_ASSEMBLER_IMAGE.replaceAll(
+            "quay.io/coreos-assembler/coreos-assembler:",
+            "localhost/coreos-assembler:"
+        )
+    }
+
     // Initialize the sessions on the remote builders
     stage("Initialize Remotes") {
         parallel aarch64: {
             remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
                 sessionaarch64 = shwrapCapture("""
-                cosa remote-session create --expiration 4h \
-                    --image localhost/coreos-assembler:latest
+                cosa remote-session create --image ${image} --expiration 4h
                 """)
             }
         }
