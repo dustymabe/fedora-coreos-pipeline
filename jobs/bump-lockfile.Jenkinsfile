@@ -179,7 +179,41 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             stage("Build") {
                 shwrap("cosa build --force --strict")
             }
-            fcosKola(cosaDir: env.WORKSPACE)
+            stage('Kola:QEMU basic') {
+                shwrap("""
+                cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
+                cosa shell -- tar -c --xz tmp/kola/ > kola-run-basic.aarch64.tar.xz
+                cosa shell -- cat tmp/kola/reports/report.json > report-kola-basic.aarch64.json
+                """)
+                archiveArtifacts "kola-run-basic.aarch64.tar.xz"
+                if (!pipeutils.checkKolaSuccess("report-kola-basic.aarch64.json")) {
+                    error('Kola:QEMU basic')
+                }
+            }
+            def parallelaarch64runs = [:]
+            parallelruns['Kola:QEMU'] = {
+                shwrap("""
+                cosa kola run --rerun --parallel 5 --no-test-exit-error fcos.filesystem
+                cosa shell -- tar -c --xz tmp/kola/ > kola-run.aarch64.tar.xz
+                cosa shell -- cat tmp/kola/reports/report.json > report-kola.aarch64.json
+                """)
+                archiveArtifacts "kola-run.tar.xz
+                if (!pipeutils.checkKolaSuccess("report-kola.aarch64.json")) {
+                    error('Kola:QEMU')
+                }
+            }
+            parallelaarch64runs['Kola:QEMU Upgrade'] = {
+                shwrap("""
+                cosa kola --rerun --upgrades --no-test-exit-error
+                cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.aarch64.tar.xz
+                cosa shell -- cat tmp/kola-upgrade/reports/report.json > report-kola-upgrade.json
+                """)
+                archiveArtifacts "kola-run-upgrade.aarch64.tar.xz"
+                if (!pipeutils.checkKolaSuccess("report-kola-upgrade.json")) {
+                    error('Kola:QEMU Upgrade')
+                }
+            }
+            parallel parallelaarch64runs
             stage("Build Metal") {
                 shwrap("cosa buildextend-metal")
                 shwrap("cosa buildextend-metal4k")
@@ -211,7 +245,41 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             stage("Build") {
                 shwrap("cosa build --force --strict")
             }
-            fcosKola(cosaDir: env.WORKSPACE)
+            stage('Kola:QEMU basic') {
+                shwrap("""
+                cosa kola run --rerun --basic-qemu-scenarios --no-test-exit-error
+                cosa shell -- tar -c --xz tmp/kola/ > kola-run-basic.x86_64.tar.xz
+                cosa shell -- cat tmp/kola/reports/report.json > report-kola-basic.x86_64.json
+                """)
+                archiveArtifacts "kola-run-basic.x86_64.tar.xz"
+                if (!pipeutils.checkKolaSuccess("report-kola-basic.x86_64.json")) {
+                    error('Kola:QEMU basic')
+                }
+            }
+            def parallelx86_64runs = [:]
+            parallelruns['Kola:QEMU'] = {
+                shwrap("""
+                cosa kola run --rerun --parallel 5 --no-test-exit-error fcos.filesystem
+                cosa shell -- tar -c --xz tmp/kola/ > kola-run.x86_64.tar.xz
+                cosa shell -- cat tmp/kola/reports/report.json > report-kola.x86_64.json
+                """)
+                archiveArtifacts "kola-run.tar.xz
+                if (!pipeutils.checkKolaSuccess("report-kola.x86_64.json")) {
+                    error('Kola:QEMU')
+                }
+            }
+            parallelx86_64runs['Kola:QEMU Upgrade'] = {
+                shwrap("""
+                cosa kola --rerun --upgrades --no-test-exit-error
+                cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.x86_64.tar.xz
+                cosa shell -- cat tmp/kola-upgrade/reports/report.json > report-kola-upgrade.json
+                """)
+                archiveArtifacts "kola-run-upgrade.x86_64.tar.xz"
+                if (!pipeutils.checkKolaSuccess("report-kola-upgrade.json")) {
+                    error('Kola:QEMU Upgrade')
+                }
+            }
+            parallel parallelx86_64runs
             stage("Build Metal") {
                 shwrap("cosa buildextend-metal")
                 shwrap("cosa buildextend-metal4k")
