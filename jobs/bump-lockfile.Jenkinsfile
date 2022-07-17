@@ -108,7 +108,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                     //shwrap("cosa remote-session sync --quiet ./ :/srv/")
                     shwrap("""
                     cosa init --force https://github.com/coreos/fedora-coreos-config.git
-                    cosa remote-session sync ./builds/ :builds/")
+                    cosa remote-session sync ./builds/ :builds/
                     """)
                 }
             }
@@ -331,6 +331,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             message="lockfiles: bump timestamp"
         }
         shwrap("git -C src/config add manifest-lock.*.json")
+        shwrap("git -C src/config diff --cached")
         shwrap("git -C src/config commit -m '${message}' -m 'Job URL: ${env.BUILD_URL}' -m 'Job definition: https://github.com/coreos/fedora-coreos-pipeline/blob/main/jobs/bump-lockfile.Jenkinsfile'")
         withCredentials([usernamePassword(credentialsId: botCreds,
                                           usernameVariable: 'GHUSER',
