@@ -108,6 +108,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                     //shwrap("cosa remote-session sync --quiet ./ :/srv/")
                     shwrap("""
                     cosa init --force https://github.com/coreos/fedora-coreos-config.git
+                    cosa remote-session sync ./builds/ :builds/")
                     """)
                 }
             }
