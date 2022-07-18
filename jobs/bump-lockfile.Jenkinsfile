@@ -63,7 +63,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     def branch = params.STREAM
     def forceTimestamp = false
     def haveChanges = false
-    def fcos_config_commit = shwrapCapture("git ls-remote ${src_config_url} ${ref} | cut -d \$'\t' -f 1")
+    def fcos_config_commit = shwrapCapture("git ls-remote https://github.com/${repo} ${ref} | cut -d \$'\t' -f 1")
     shwrap("cosa init --branch ${branch} --commit=${fcos_config_commit} https://github.com/${repo}")
     // we buildfetch here so we can see in the build output what packages changed
     shwrap("cosa buildfetch --arch=all --url=${BUILDS_BASE_HTTP_URL}/${branch}/builds")
