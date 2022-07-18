@@ -50,8 +50,7 @@ def getLockfileInfo(lockfile) {
 }
 
 try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTES') { 
-    cosaPod(image: params.COREOS_ASSEMBLER_IMAGE,
-            secrets: ["fcos-aarch64-builder"]) {
+    cosaPod(image: params.COREOS_ASSEMBLER_IMAGE) {
     currentBuild.description = "[${params.STREAM}] Running"
 
     // set up git user upfront
