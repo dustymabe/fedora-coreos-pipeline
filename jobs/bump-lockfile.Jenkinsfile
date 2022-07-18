@@ -193,7 +193,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                     error("${arch}:Kola:basic")
                 }
             }
-            def parallelruns = [:]
             parallelruns["${arch}:Kola"] = {
                 shwrap("""
                 cosa kola run --rerun --parallel 5 --no-test-exit-error fcos.filesystem
