@@ -62,7 +62,7 @@ properties([
              defaultValue: "coreos-assembler:main",
              trim: true),
       booleanParam(name: 'KOLA_RUN_SLEEP',
-                   defaultValue: true,
+                   defaultValue: false,
                    description: 'Wait forever at kola tests stage. Implies NO_UPLOAD'),
       booleanParam(name: 'NO_UPLOAD',
                    defaultValue: false,
