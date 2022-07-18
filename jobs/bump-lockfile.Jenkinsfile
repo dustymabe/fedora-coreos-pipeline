@@ -405,7 +405,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             pipeutils.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("cosa remote-session destroy")
-//          }
+            }
 //      }, s390x: {
 //          pipeutils.withExistingCOSARemoteSession(arch: "s390x",
 //                                               session: sessions390x) {
