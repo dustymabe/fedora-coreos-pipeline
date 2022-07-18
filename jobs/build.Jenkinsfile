@@ -43,7 +43,7 @@ properties([
              trim: true),
       string(name: 'ADDITIONAL_ARCHES',
              description: 'Space-separated list of additional target architectures',
-             defaultValue: "aarch64",
+             defaultValue: streams.additional_arches.join(" "),
              trim: true),
       booleanParam(name: 'FORCE',
                    defaultValue: false,
