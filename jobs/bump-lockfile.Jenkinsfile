@@ -50,8 +50,7 @@ def getLockfileInfo(lockfile) {
 }
 
 try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTES') { 
-    cosaPod(image: params.COREOS_ASSEMBLER_IMAGE,
-            secrets: ["fcos-aarch64-builder"]) {
+    cosaPod(image: params.COREOS_ASSEMBLER_IMAGE) {
     currentBuild.description = "[${params.STREAM}] Running"
 
     // set up git user upfront
@@ -106,7 +105,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${sessionaarch64}"]) {
                     //shwrap("cosa remote-session sync --quiet ./ :/srv/")
                     shwrap("""
-                    cosa init --branch ${branch} --commit=${fcos_config_commit} https://github.com/${repo}")
+                    cosa init --branch ${branch} --commit=${fcos_config_commit} https://github.com/${repo}
                     cosa remote-session sync ./builds/ :builds/
                     """)
                 }
@@ -117,7 +116,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
 //              withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${sessions390x}"]) {
 //                  //shwrap("cosa remote-session sync --quiet ./ :/srv/")
 //                  shwrap("""
-//                  cosa init --branch ${branch} --commit=${fcos_config_commit} https://github.com/${repo}")
+//                  cosa init --branch ${branch} --commit=${fcos_config_commit} https://github.com/${repo}
 //                  cosa remote-session sync ./builds/ :builds/
 //                  """)
 //              }
