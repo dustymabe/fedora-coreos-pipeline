@@ -1,5 +1,5 @@
 def pipeutils, streams, official
-def remote, sessionaarch64, sessions390x
+def sessionaarch64, sessions390x
 node {
     checkout scm
     pipeutils = load("utils.groovy")
