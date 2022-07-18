@@ -340,9 +340,9 @@ lock(resource: "build-${params.STREAM}") {
             cosa shell -- cat tmp/kola/reports/report.json > report.json
             """)
             archiveArtifacts "kola-run-basic.tar.xz"
-        }
-        if (!pipeutils.checkKolaSuccess("report.json")) {
-            error('Kola:QEMU basic')
+            if (!pipeutils.checkKolaSuccess("report.json")) {
+                error('Kola:QEMU basic')
+            }
         }
 
 //      // reset for the next batch of independent tasks
