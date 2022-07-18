@@ -192,7 +192,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 }
             }
             def parallelaarch64runs = [:]
-            parallelruns['Kola:QEMU'] = {
+            parallelaarch64runs['Kola:QEMU'] = {
                 shwrap("""
                 cosa kola run --rerun --parallel 5 --no-test-exit-error fcos.filesystem
                 cosa shell -- tar -c --xz tmp/kola/ > kola-run.aarch64.tar.xz
@@ -258,7 +258,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 }
             }
             def parallelx86_64runs = [:]
-            parallelruns['Kola:QEMU'] = {
+            parallelx86_64runs['Kola:QEMU'] = {
                 shwrap("""
                 cosa kola run --rerun --parallel 5 --no-test-exit-error fcos.filesystem
                 cosa shell -- tar -c --xz tmp/kola/ > kola-run.x86_64.tar.xz
