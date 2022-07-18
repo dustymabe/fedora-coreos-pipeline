@@ -345,52 +345,52 @@ lock(resource: "build-${params.STREAM}") {
             }
         }
 
-//      // reset for the next batch of independent tasks
-//      parallelruns = [:]
+        // reset for the next batch of independent tasks
+        parallelruns = [:]
 
-//      // Kola QEMU tests
-//      parallelruns['Kola:QEMU'] = {
-//          // leave 512M for overhead & 1G for upgrade test; VMs are 1G each
-//          def parallel = ((cosa_memory_request_mb - 1536) / 1024) as Integer
-//          shwrap("""
-//          cosa kola run --rerun --parallel ${parallel} --no-test-exit-error fcos.filesystem
-//          cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
-//          cosa shell -- cat tmp/kola/reports/report.json > report.json
-//          """)
-//          archiveArtifacts "kola-run.tar.xz"
-//          if (!pipeutils.checkKolaSuccess("report.json")) {
-//              error('Kola:QEMU')
-//          }
-//      }
+        // Kola QEMU tests
+        parallelruns['Kola:QEMU'] = {
+            // leave 512M for overhead & 1G for upgrade test; VMs are 1G each
+            def parallel = ((cosa_memory_request_mb - 1536) / 1024) as Integer
+            shwrap("""
+            cosa kola run --rerun --parallel ${parallel} --no-test-exit-error
+            cosa shell -- tar -c --xz tmp/kola/ > kola-run.tar.xz
+            cosa shell -- cat tmp/kola/reports/report.json > report.json
+            """)
+            archiveArtifacts "kola-run.tar.xz"
+            if (!pipeutils.checkKolaSuccess("report.json")) {
+                error('Kola:QEMU')
+            }
+        }
 
-//      // Kola QEMU Upgrade tests
-//      parallelruns['Kola:QEMU Upgrade'] = {
-//          // If upgrades are broken `cosa kola --upgrades` might
-//          // fail to even find the previous image so we wrap this
-//          // in a try/catch so ALLOW_KOLA_UPGRADE_FAILURE can work.
-//          try {
-//              shwrap("""
-//              cosa kola --rerun --upgrades --no-test-exit-error
-//              cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.tar.xz
-//              cosa shell -- cat tmp/kola-upgrade/reports/report.json > report.json
-//              """)
-//              archiveArtifacts "kola-run-upgrade.tar.xz"
-//              if (!pipeutils.checkKolaSuccess("report.json")) {
-//                  error('Kola:QEMU Upgrade')
-//              }
-//          } catch(e) {
-//              if (params.ALLOW_KOLA_UPGRADE_FAILURE) {
-//                  warnError(message: 'Upgrade Failed') {
-//                      error(e)
-//                  }
-//              } else {
-//                  throw e
-//              }
-//          }
-//      }
+        // Kola QEMU Upgrade tests
+        parallelruns['Kola:QEMU Upgrade'] = {
+            // If upgrades are broken `cosa kola --upgrades` might
+            // fail to even find the previous image so we wrap this
+            // in a try/catch so ALLOW_KOLA_UPGRADE_FAILURE can work.
+            try {
+                shwrap("""
+                cosa kola --rerun --upgrades --no-test-exit-error
+                cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.tar.xz
+                cosa shell -- cat tmp/kola-upgrade/reports/report.json > report.json
+                """)
+                archiveArtifacts "kola-run-upgrade.tar.xz"
+                if (!pipeutils.checkKolaSuccess("report.json")) {
+                    error('Kola:QEMU Upgrade')
+                }
+            } catch(e) {
+                if (params.ALLOW_KOLA_UPGRADE_FAILURE) {
+                    warnError(message: 'Upgrade Failed') {
+                        error(e)
+                    }
+                } else {
+                    throw e
+                }
+            }
+        }
 
-//      // process this batch
-//      parallel parallelruns
+        // process this batch
+        parallel parallelruns
 
         // If we are uploading results then let's do an early archive
         // of just the OSTree. This has the desired side effect of

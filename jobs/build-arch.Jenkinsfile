@@ -2,13 +2,12 @@ import org.yaml.snakeyaml.Yaml;
 
 def pipeutils, streams, official, uploading
 def src_config_url, src_config_ref, s3_bucket
-def remote, session
+def session
 node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
     pod = readFile(file: "manifests/pod.yaml")
-    remote = load("withPodmanRemoteArchBuilder.groovy")
 
 
     def pipecfg = pipeutils.load_config()
@@ -206,7 +205,7 @@ lock(resource: "build-${params.STREAM}-${params.ARCH}", extra: [[resource: "rele
         // that `podman --remote` will transparently pick up and use.
         // We set the session to time out after 4h. This essentially
         // performs garbage collection on the remote if we fail to clean up.
-        remote.withPodmanRemoteArchBuilder(arch: basearch) {
+        pipeutils.withPodmanRemoteArchBuilder(arch: basearch) {
         session = shwrapCapture("cosa remote-session create --image ${image} --expiration 4h")
         withEnv(["COREOS_ASSEMBLER_REMOTE_SESSION=${session}"]) {
 

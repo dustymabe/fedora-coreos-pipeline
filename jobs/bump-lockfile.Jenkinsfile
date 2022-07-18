@@ -4,7 +4,6 @@ node {
     checkout scm
     pipeutils = load("utils.groovy")
     streams = load("streams.groovy")
-    remote = load("withPodmanRemoteArchBuilder.groovy")
     def pipecfg = pipeutils.load_config()
     official = pipeutils.isOfficial()
 }
@@ -100,7 +99,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // Initialize the sessions on the remote builders
     stage("Initialize Remotes") {
         parallel aarch64: {
-            remote.withPodmanRemoteArchBuilder(arch: "aarch64") {
+            pipeutils.withPodmanRemoteArchBuilder(arch: "aarch64") {
                 sessionaarch64 = shwrapCapture("""
                 cosa remote-session create --image ${image} --expiration 4h
                 """)
@@ -121,7 +120,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         parallel x86_64: {
             shwrap("cosa fetch --update-lockfile --dry-run")
         }, aarch64: {
-            remote.withExistingCOSARemoteSession(arch: "aarch64",
+            pipeutils.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("""
                 cosa fetch --update-lockfile --dry-run
@@ -174,7 +173,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
         parallel "aarch64": {
             def arch = "aarch64"
             def parallelruns = [:]
-            remote.withExistingCOSARemoteSession(arch: arch,
+            pipeutils.withExistingCOSARemoteSession(arch: arch,
                                                  session: sessionaarch64) {
             stage("${arch}:Fetch") {
                 shwrap("cosa fetch --strict")
@@ -317,7 +316,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
     // Destroy the remote sessions. We don't need them anymore
     stage("Destroy Remotes") {
         parallel aarch64: {
-            remote.withExistingCOSARemoteSession(arch: "aarch64",
+            pipeutils.withExistingCOSARemoteSession(arch: "aarch64",
                                                  session: sessionaarch64) {
                 shwrap("cosa remote-session destroy")
             }
@@ -333,7 +332,6 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
             message="lockfiles: bump timestamp"
         }
         shwrap("git -C src/config add manifest-lock.*.json")
-        shwrap("git -C src/config diff --cached")
         shwrap("git -C src/config commit -m '${message}' -m 'Job URL: ${env.BUILD_URL}' -m 'Job definition: https://github.com/coreos/fedora-coreos-pipeline/blob/main/jobs/bump-lockfile.Jenkinsfile'")
         withCredentials([usernamePassword(credentialsId: botCreds,
                                           usernameVariable: 'GHUSER',
