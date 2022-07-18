@@ -204,7 +204,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                     error("${arch}:Kola")
                 }
             }
-            parallelruns["${arch}:Kola:Upgrade"] = {
+            parallelruns["${arch}:Kola:upgrade"] = {
                 shwrap("""
                 cosa kola --rerun --upgrades --no-test-exit-error
                 cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.${arch}.tar.xz
@@ -212,7 +212,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 """)
                 archiveArtifacts "kola-run-upgrade.${arch}.tar.xz"
                 if (!pipeutils.checkKolaSuccess("report-kola-upgrade.json")) {
-                    error("${arch}:Kola:Upgrade")
+                    error("${arch}:Kola:upgrade")
                 }
             }
             parallel parallelruns
@@ -271,7 +271,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                     error("${arch}:Kola")
                 }
             }
-            parallelruns["${arch}:Kola:Upgrade"] = {
+            parallelruns["${arch}:Kola:upgrade"] = {
                 shwrap("""
                 cosa kola --rerun --upgrades --no-test-exit-error
                 cosa shell -- tar -c --xz tmp/kola-upgrade/ > kola-run-upgrade.${arch}.tar.xz
@@ -279,7 +279,7 @@ try { lock(resource: "bump-${params.STREAM}") { timeout(time: 120, unit: 'MINUTE
                 """)
                 archiveArtifacts "kola-run-upgrade.${arch}.tar.xz"
                 if (!pipeutils.checkKolaSuccess("report-kola-upgrade.json")) {
-                    error("${arch}:Kola:Upgrade")
+                    error("${arch}:Kola:upgrade")
                 }
             }
             parallel parallelruns
