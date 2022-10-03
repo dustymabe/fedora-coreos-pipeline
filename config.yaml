@@ -4,26 +4,65 @@ streams:
       variants: []
       branch: master
       cosa_image: "coreos-assembler:main"
+      additional_artifacts:
+        aarch64:
+          - azure
+          - openstack
+        ppc64le:
+          - powervs
+        x86_64:
+          - ibmcloud
+          - azurestack
+          - nutanix
     "4.11":
       type: production
       branch: release-4.11
       cosa_image: "coreos-assembler:rhcos-4.11"
+      additional_artifacts:
+        aarch64:
+          - azure
+          - openstack
+        ppc64le:
+          - powervs
+        x86_64:
+          - ibmcloud
+          - azurestack
+          - nutanix
     "4.10":
       type: production
       branch: release-4.10
       cosa_image: "coreos-assembler:rhcos-4.10"
+      additional_artifacts:
+        aarch64:
+          - openstack
+        x86_64:
+          - ibmcloud
+          - azurestack
+          - nutanix
     "4.9":
       type: production
       branch: release-4.9
       cosa_image: "coreos-assembler:rhcos-4.9"
+      additional_artifacts:
+        aarch64:
+          - openstack
+        x86_64:
+          - ibmcloud
+          - azurestack
     "4.8":
       type: production
       branch: release-4.8
       cosa_image: "coreos-assembler:rhcos-4.8"
+      additional_artifacts:
+        x86_64:
+          - ibmcloud
     "4.7":
       type: production
       branch: release-4.7
       cosa_image: "coreos-assembler:rhcos-4.7"
+      additional_artifacts:
+        x86_64:
+          - ibmcloud
     "4.6":
       type: production
       branch: release-4.6
@@ -34,6 +73,34 @@ additional_arches: [ppc64le]
 
 source_config:
   url: https://github.com/openshift/os
+
+
+default_artifacts:
+  aarch64:
+    - aws
+    - live
+    - metal
+    - metal4k
+  ppc64le:
+    - live
+    - metal
+    - metal4k
+    - openstack
+  s390x:
+    - dasd
+    - live
+    - metal
+    - metal4k
+    - openstack
+  x86_64:
+    - aws
+    - azure
+    - gcp
+    - live
+    - metal
+    - metal4k
+    - openstack
+    - vmware
 
 # remove to disable S3 uploads
 # s3_bucket: rhcos-ci
