@@ -1,8 +1,8 @@
 streams:
-    master:
+    "4.12":
       type: production
       variants: []
-      branch: master
+      src_config_ref: master
       cosa_image: "coreos-assembler:main"
       additional_artifacts:
         aarch64:
@@ -16,7 +16,6 @@ streams:
           - nutanix
     "4.11":
       type: production
-      branch: release-4.11
       cosa_image: "coreos-assembler:rhcos-4.11"
       additional_artifacts:
         aarch64:
@@ -30,7 +29,6 @@ streams:
           - nutanix
     "4.10":
       type: production
-      branch: release-4.10
       cosa_image: "coreos-assembler:rhcos-4.10"
       additional_artifacts:
         aarch64:
@@ -41,7 +39,6 @@ streams:
           - nutanix
     "4.9":
       type: production
-      branch: release-4.9
       cosa_image: "coreos-assembler:rhcos-4.9"
       additional_artifacts:
         aarch64:
@@ -51,21 +48,18 @@ streams:
           - azurestack
     "4.8":
       type: production
-      branch: release-4.8
       cosa_image: "coreos-assembler:rhcos-4.8"
       additional_artifacts:
         x86_64:
           - ibmcloud
     "4.7":
       type: production
-      branch: release-4.7
       cosa_image: "coreos-assembler:rhcos-4.7"
       additional_artifacts:
         x86_64:
           - ibmcloud
     "4.6":
       type: production
-      branch: release-4.6
       cosa_image: "coreos-assembler:rhcos-4.6"
 
 # additional_arches: [aarch64, ppc64le, s390x]
@@ -73,6 +67,7 @@ additional_arches: [ppc64le]
 
 source_config:
   url: https://github.com/openshift/os
+  ref: release-${STREAM}
 
 
 default_artifacts:
