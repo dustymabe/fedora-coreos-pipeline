@@ -115,30 +115,30 @@ try {
                 }
             }
 
-            // For production streams, promote the GCP image so that it
-            // will be the chosen image in an image family and deprecate
-            // all others. `ore gcloud promote-image` does this for us.
-            if ((basearch == 'x86_64') && (meta.gcp?.image) &&
-                    (stream_info.type == 'production')) {
-                pipeutils.tryWithCredentials([file(variable: 'GCP_IMAGE_UPLOAD_CONFIG',
-                                                   credentialsId: 'gcp-image-upload-config')]) {
-                    stage("GCP ${basearch}: Image Promotion") {
-                        shwrap("""
-                        # pick up the project to use from the config
-                        gcp_project=\$(jq -r .project_id \${GCP_IMAGE_UPLOAD_CONFIG})
-                        ore gcloud promote-image \
-                            --log-level=INFO \
-                            --project=\${gcp_project} \
-                            --json-key \${GCP_IMAGE_UPLOAD_CONFIG} \
-                            --family fedora-coreos-${params.STREAM} \
-                            --image "${meta.gcp.image}"
-                        """)
-                    }
-                }
-            }
+//          // For production streams, promote the GCP image so that it
+//          // will be the chosen image in an image family and deprecate
+//          // all others. `ore gcloud promote-image` does this for us.
+//          if ((basearch == 'x86_64') && (meta.gcp?.image) &&
+//                  (stream_info.type == 'production')) {
+//              pipeutils.tryWithCredentials([file(variable: 'GCP_IMAGE_UPLOAD_CONFIG',
+//                                                 credentialsId: 'gcp-image-upload-config')]) {
+//                  stage("GCP ${basearch}: Image Promotion") {
+//                      shwrap("""
+//                      # pick up the project to use from the config
+//                      gcp_project=\$(jq -r .project_id \${GCP_IMAGE_UPLOAD_CONFIG})
+//                      ore gcloud promote-image \
+//                          --log-level=INFO \
+//                          --project=\${gcp_project} \
+//                          --json-key \${GCP_IMAGE_UPLOAD_CONFIG} \
+//                          --family fedora-coreos-${params.STREAM} \
+//                          --image "${meta.gcp.image}"
+//                      """)
+//                  }
+//              }
+//          }
 
 
-            if ((basearch in ['aarch64', 'x86_64']) && params.AWS_REPLICATION) {
+            if ((basearch in ['aarch64', 'x86_64']) && false) {
                 // Replicate AMI to other regions.
                 stage("Replicate ${basearch} AWS AMI") {
                     withCredentials([file(variable: 'AWS_CONFIG_FILE',
@@ -194,15 +194,15 @@ try {
                     ${arch_args} s3 --acl=public-read ${s3_stream_dir}/builds
                 """)
 
-                // Run plume to publish official builds; This will handle modifying
-                // object ACLs, modifying AMI image attributes,
-                // and creating/modifying the releases.json metadata index
-                shwrap("""
-                plume release --distro fcos \
-                    --version ${params.VERSION} \
-                    --stream ${params.STREAM} \
-                    --bucket ${pipecfg.s3_bucket}
-                """)
+   //           // Run plume to publish official builds; This will handle modifying
+   //           // object ACLs, modifying AMI image attributes,
+   //           // and creating/modifying the releases.json metadata index
+   //           shwrap("""
+   //           plume release --distro fcos \
+   //               --version ${params.VERSION} \
+   //               --stream ${params.STREAM} \
+   //               --bucket ${pipecfg.s3_bucket}
+   //           """)
             }
 
             pipeutils.tryWithMessagingCredentials() {
@@ -215,37 +215,37 @@ try {
             }
         }
 
-        if (ostree_prod_refs.size() > 0) {
-            stage("OSTree Import: Wait and Verify") {
-                def tmpd = shwrapCapture("mktemp -d")
+  //    if (ostree_prod_refs.size() > 0) {
+  //        stage("OSTree Import: Wait and Verify") {
+  //            def tmpd = shwrapCapture("mktemp -d")
 
-                shwrap("""
-                cd ${tmpd}
-                ostree init --mode=archive --repo=.
-                # add official repo config, which enforces signature checking
-                cat /etc/ostree/remotes.d/fedora.conf >> config
-                """)
+  //            shwrap("""
+  //            cd ${tmpd}
+  //            ostree init --mode=archive --repo=.
+  //            # add official repo config, which enforces signature checking
+  //            cat /etc/ostree/remotes.d/fedora.conf >> config
+  //            """)
 
-                // We do this in a loop because it takes time for the import to
-                // complete and the updated summary file to propagate. But it
-                // shouldn't normally take more than 20 minutes.
-                timeout(time: 20, unit: 'MINUTES') {
-                    for (ref in ostree_prod_refs) {
-                        shwrap("""
-                        cd ${tmpd}
-                        while true; do
-                            ostree pull --commit-metadata-only fedora:${ref.key}
-                            chksum=\$(ostree rev-parse fedora:${ref.key})
-                            if [ "\${chksum}" == "${ref.value}" ]; then
-                                break
-                            fi
-                            sleep 30
-                        done
-                        """)
-                    }
-                }
-            }
-        }
+  //            // We do this in a loop because it takes time for the import to
+  //            // complete and the updated summary file to propagate. But it
+  //            // shouldn't normally take more than 20 minutes.
+  //            timeout(time: 20, unit: 'MINUTES') {
+  //                for (ref in ostree_prod_refs) {
+  //                    shwrap("""
+  //                    cd ${tmpd}
+  //                    while true; do
+  //                        ostree pull --commit-metadata-only fedora:${ref.key}
+  //                        chksum=\$(ostree rev-parse fedora:${ref.key})
+  //                        if [ "\${chksum}" == "${ref.value}" ]; then
+  //                            break
+  //                        fi
+  //                        sleep 30
+  //                    done
+  //                    """)
+  //                }
+  //            }
+  //        }
+  //    }
         currentBuild.result = 'SUCCESS'
 
 // cosaPod, lock, and try finish here
