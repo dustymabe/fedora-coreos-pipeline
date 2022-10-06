@@ -68,6 +68,7 @@ additional_arches: [ppc64le]
 source_config:
   url: https://github.com/openshift/os
   ref: release-${STREAM}
+  yumrepos: https://gitlab.cee.redhat.com/coreos/redhat-coreos.git
 
 
 default_artifacts:
