@@ -63,7 +63,7 @@ streams:
       cosa_image: "coreos-assembler:rhcos-4.6"
 
 # additional_arches: [aarch64, ppc64le, s390x]
-additional_arches: [ppc64le]
+additional_arches: [ppc64le, s390x]
 
 source_config:
   url: https://github.com/openshift/os
