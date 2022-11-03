@@ -342,7 +342,7 @@ lock(resource: "release-${params.STREAM}", extra: locks) {
     currentBuild.result = 'FAILURE'
     throw e
 } finally {
-    if (official && currentBuild.result != 'SUCCESS') {
+    if (true && currentBuild.result != 'SUCCESS') {
         slackSend(color: 'danger', message: ":fcos: :bullettrain_front: :trashfire: release <${env.BUILD_URL}|#${env.BUILD_NUMBER}> [${params.STREAM}][${params.ARCHES}] (${params.VERSION})")
     }
 }}} // try-catch-finally, cosaPod and lock finish here

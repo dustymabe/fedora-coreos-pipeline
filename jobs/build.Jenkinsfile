@@ -499,7 +499,7 @@ lock(resource: "build-${params.STREAM}") {
     }
 
     echo message
-    if (official) {
+    if (true) {
         slackSend(color: color, message: message)
     }
     if (official) {
