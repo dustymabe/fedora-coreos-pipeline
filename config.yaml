@@ -115,7 +115,7 @@ streams:
           - nutanix
       cosa_controller_img_hack: quay.io/coreos-assembler/coreos-assembler:main
 
-cosa_img: quay.io/coreos-assembler/coreos-assembler:rhcos-${STREAM}
+cosa_img: quay.io/coreos-assembler/coreos-assembler:rhcos-${STREAM}-new
 
 additional_arches: [aarch64, ppc64le, s390x]
 
@@ -126,10 +126,10 @@ source_config:
 
 default_artifacts:
   all:
-    - metal
-    - metal4k
-    - live
-    - openstack
+#   - metal
+#   - metal4k
+#   - live
+#   - openstack
     - extensions-container
   aarch64:
     - aws
@@ -141,13 +141,13 @@ default_artifacts:
     - ibmcloud
   x86_64:
     - aliyun
-    - aws
-    - azure
-    - azurestack
-    - gcp
-    - ibmcloud
-    - nutanix
-    - vmware
+#   - aws
+#   - azure
+#   - azurestack
+#   - gcp
+#   - ibmcloud
+#   - nutanix
+#   - vmware
 
 # remove to disable S3 uploads
 s3_bucket: rhcos-ci
