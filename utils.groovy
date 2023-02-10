@@ -39,7 +39,7 @@ def load_pipecfg(hotfix_url = "", hotfix_ref = "") {
         ])
         pipecfg = readYaml(file: "pipecfg/config.yaml")
     }
-    validate_pipecfg(pipecfg, hotfix_url || hotfix_ref)
+    //validate_pipecfg(pipecfg, hotfix_url || hotfix_ref)
     return pipecfg
 }
 

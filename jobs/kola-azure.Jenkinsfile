@@ -51,6 +51,9 @@ def s3_stream_dir = pipeutils.get_s3_streams_dir(pipecfg, params.STREAM)
 // Go with 1.5Gi here because we download/decompress/upload the image
 def cosa_memory_request_mb = 1536
 
+// Base URL through which to download artifacts
+BUILDS_BASE_HTTP_URL = "https://builds.coreos.fedoraproject.org/prod/streams"
+
 
 timeout(time: 75, unit: 'MINUTES') {
     cosaPod(memory: "${cosa_memory_request_mb}Mi", kvm: false,
@@ -64,6 +67,15 @@ timeout(time: 75, unit: 'MINUTES') {
             if (params.SRC_CONFIG_COMMIT != '') {
                 commitopt = "--commit=${params.SRC_CONFIG_COMMIT}"
             }
+            shwrap("""
+                sleep 600
+                cd /usr/local/bin
+                curl -LO https://dustymabe.fedorapeople.org/kola
+                curl -LO https://dustymabe.fedorapeople.org/ore
+                chmod +x kola
+                chmod +x ore
+            """)
+
             // Grab the metadata. Also grab the image so we can upload it.
             withCredentials([file(variable: 'AWS_CONFIG_FILE',
                                   credentialsId: 'aws-build-upload-config')]) {
@@ -72,7 +84,7 @@ timeout(time: 75, unit: 'MINUTES') {
                 shwrap("""
                 cosa init --branch ${ref} ${commitopt} ${variant} ${pipecfg.source_config.url}
                 cosa buildfetch --build=${params.VERSION} --arch=${params.ARCH} \
-                    --url=s3://${s3_stream_dir}/builds --artifact=azure
+                    --url=${BUILDS_BASE_HTTP_URL}/${branch}/builds --artifact=azure
                 """)
                 pipeutils.withXzMemLimit(cosa_memory_request_mb - 256) {
                     shwrap("cosa decompress --build=${params.VERSION} --artifact=azure")
@@ -142,20 +154,21 @@ timeout(time: 75, unit: 'MINUTES') {
             } finally {
                 parallel "Delete Image": {
                     // Delete the image in Azure
-                    shwrap("""
-                    ore azure delete-image --log-level=INFO                 \
-                        --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
-                        --azure-location $region                            \
-                        --resource-group $azure_testing_resource_group      \
-                        --image-name $azure_image_name
-                    ore azure delete-blob --log-level=INFO                  \
-                        --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
-                        --azure-location $region                            \
-                        --resource-group $azure_testing_resource_group      \
-                        --storage-account $azure_testing_storage_account    \
-                        --container $azure_testing_storage_container        \
-                        --blob-name $azure_image_name
-                    """)
+                    shwrap("ls")
+//                  shwrap("""
+//                  ore azure delete-image --log-level=INFO                 \
+//                      --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
+//                      --azure-location $region                            \
+//                      --resource-group $azure_testing_resource_group      \
+//                      --image-name $azure_image_name
+//                  ore azure delete-blob --log-level=INFO                  \
+//                      --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
+//                      --azure-location $region                            \
+//                      --resource-group $azure_testing_resource_group      \
+//                      --storage-account $azure_testing_storage_account    \
+//                      --container $azure_testing_storage_container        \
+//                      --blob-name $azure_image_name
+//                  """)
                 }, "Garbage Collection": {
                     shwrap("""
                     ore azure gc --log-level=INFO                           \
