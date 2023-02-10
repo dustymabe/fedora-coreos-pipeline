@@ -67,14 +67,6 @@ timeout(time: 75, unit: 'MINUTES') {
             if (params.SRC_CONFIG_COMMIT != '') {
                 commitopt = "--commit=${params.SRC_CONFIG_COMMIT}"
             }
-            shwrap("""
-                sleep 600
-                cd /usr/local/bin
-                curl -LO https://dustymabe.fedorapeople.org/kola
-                curl -LO https://dustymabe.fedorapeople.org/ore
-                chmod +x kola
-                chmod +x ore
-            """)
 
             // Grab the metadata. Also grab the image so we can upload it.
             withCredentials([file(variable: 'AWS_CONFIG_FILE',
