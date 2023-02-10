@@ -76,7 +76,7 @@ timeout(time: 75, unit: 'MINUTES') {
                 shwrap("""
                 cosa init --branch ${ref} ${commitopt} ${variant} ${pipecfg.source_config.url}
                 cosa buildfetch --build=${params.VERSION} --arch=${params.ARCH} \
-                    --url=${BUILDS_BASE_HTTP_URL}/${branch}/builds --artifact=azure
+                    --url=${BUILDS_BASE_HTTP_URL}/${params.STREAM}/builds --artifact=azure
                 """)
                 pipeutils.withXzMemLimit(cosa_memory_request_mb - 256) {
                     shwrap("cosa decompress --build=${params.VERSION} --artifact=azure")
