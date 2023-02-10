@@ -102,12 +102,12 @@ timeout(time: 75, unit: 'MINUTES') {
                 shwrap("""
                 # First delete the blob/image since we re-use it.
                 ore azure delete-image --log-level=INFO                 \
-                    --credentials \${AZURE_KOLA_TESTS_CONFIG}           \
+                    --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
                     --azure-location $region                            \
                     --resource-group ${azure_testing_resource_group}    \
                     --image-name ${azure_image_name}
                 ore azure delete-blob --log-level=INFO                  \
-                    --credentials \${AZURE_KOLA_TESTS_CONFIG}           \
+                    --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
                     --azure-location $region                            \
                     --resource-group $azure_testing_resource_group      \
                     --storage-account $azure_testing_storage_account    \
@@ -115,7 +115,7 @@ timeout(time: 75, unit: 'MINUTES') {
                     --blob-name $azure_image_name
                 # Then create them fresh
                 ore azure upload-blob --log-level=INFO                  \
-                    --credentials \${AZURE_KOLA_TESTS_CONFIG}           \
+                    --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
                     --azure-location $region                            \
                     --resource-group $azure_testing_resource_group      \
                     --storage-account $azure_testing_storage_account    \
@@ -123,7 +123,7 @@ timeout(time: 75, unit: 'MINUTES') {
                     --blob-name $azure_image_name                       \
                     --file ${azure_image_filepath}
                 ore azure create-image --log-level=INFO                 \
-                    --credentials \${AZURE_KOLA_TESTS_CONFIG}           \
+                    --azure-credentials \${AZURE_KOLA_TESTS_CONFIG}     \
                     --resource-group $azure_testing_resource_group      \
                     --azure-location $region                            \
                     --image-name $azure_image_name                      \
