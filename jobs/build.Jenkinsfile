@@ -228,11 +228,30 @@ lock(resource: "build-${params.STREAM}") {
             new_version = shwrapCapture("/usr/lib/coreos-assembler/fcos-versionary")
         }
 
+        def overrides_fetch_param = ""
+        def recent_commits_to_lockfiles = shwrapRc('''
+            echo "Last commit: $(date -ud @$(git log -1 --follow manifest-lock* --format="%ct"))"
+            # Number of minutes to check
+            n=120
+            current_time=$(date +%s)
+            minutes_ago=$(( current_time - ( 60 * n ) ))
+            last_log=$(git log -1 --date=unix --format="%cd" manifest-lock*)
+            # Check if git log was run within the last n minutes
+            if (( last_log > minutes_ago )); then
+                echo "Last log < $n minutes; implementing --with-cosa-overrides"
+                exit 0
+            else
+                exit 1
+            fi
+        ''')
+
         // fetch from repos for the current build
         stage('Fetch') {
-            shwrap("""
-            cosa fetch ${strict_build_param}
-            """)
+            // Dont run this for production builds
+            if (recent_commits_to_lockfiles == 0 && stream_info.type != "production" ) {
+                overrides_fetch_param = "--with-cosa-overrides"
+            }
+            shwrap("cosa fetch ${overrides_fetch_param} ${strict_build_param}")            
         }
 
         stage('Build OSTree') {
