@@ -186,6 +186,7 @@ EOF
                 extraArgs: "--tag extended-upgrade --append-butane tmp/target_stream.bu",
                 skipBasicScenarios: true,
                 skipUpgrade: true,
+                disableRerunSuccess: true,
             ]
             def k1, k2, k3
 
