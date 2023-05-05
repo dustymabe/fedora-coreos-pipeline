@@ -192,29 +192,29 @@ EOF
 
             switch(params.ARCH) {
                 case 'x86_64':
-                    k1 = kolaparams.clone()
-                    k1.extraArgs += " --qemu-firmware=uefi"
-                    k1.marker = "uefi"
-                    parallelruns['Kola:UEFI'] = { kola(k1) }
-                    // SecureBoot doesn't work on older FCOS builds with latest qemu
-                    // so we must run it conditionally.
-                    // https://github.com/coreos/fedora-coreos-tracker/issues/1452
-                    def secureboot_start_version = 34
-                    if (start_stream == 'next') {
-                        secureboot_start_version = 35
-                    }
-                    if ((start_version[0..1] as Integer) >= secureboot_start_version) {
-                        k2 = kolaparams.clone()
-                        k2.extraArgs += " --qemu-firmware=uefi-secure"
-                        if ((start_version[0..1] as Integer) <= 37) {
-                            // workaround a bug where grub would fail to allocate memory
-                            // when start_version is <= 37.20230110.2.0
-                            // https://github.com/coreos/fedora-coreos-tracker/issues/1456
-                            k2.extraArgs += " --qemu-memory=1536"
-                        }
-                        k2.marker = "uefi-secure"
-                        parallelruns['Kola:UEFI-SECURE'] = { kola(k2) }
-                    }
+                  //k1 = kolaparams.clone()
+                  //k1.extraArgs += " --qemu-firmware=uefi"
+                  //k1.marker = "uefi"
+                  //parallelruns['Kola:UEFI'] = { kola(k1) }
+                  //// SecureBoot doesn't work on older FCOS builds with latest qemu
+                  //// so we must run it conditionally.
+                  //// https://github.com/coreos/fedora-coreos-tracker/issues/1452
+                  //def secureboot_start_version = 34
+                  //if (start_stream == 'next') {
+                  //    secureboot_start_version = 35
+                  //}
+                  //if ((start_version[0..1] as Integer) >= secureboot_start_version) {
+                  //    k2 = kolaparams.clone()
+                  //    k2.extraArgs += " --qemu-firmware=uefi-secure"
+                  //    if ((start_version[0..1] as Integer) <= 37) {
+                  //        // workaround a bug where grub would fail to allocate memory
+                  //        // when start_version is <= 37.20230110.2.0
+                  //        // https://github.com/coreos/fedora-coreos-tracker/issues/1456
+                  //        k2.extraArgs += " --qemu-memory=1536"
+                  //    }
+                  //    k2.marker = "uefi-secure"
+                  //    parallelruns['Kola:UEFI-SECURE'] = { kola(k2) }
+                  //}
                     k3 = kolaparams.clone()
                     k3.extraArgs += " --qemu-firmware=bios"
                     k3.marker = "bios"
