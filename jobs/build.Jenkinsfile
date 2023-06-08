@@ -230,13 +230,15 @@ lock(resource: "build-${params.STREAM}") {
 
         def overrides_fetch_param = ""
         def recent_commits_to_lockfiles = shwrapRc('''
+            # Temporary assignment to a particular file:
             cd ./src/config/
-            echo "Last commit: $(date -ud @$(git log -1 --format="%ct" --follow manifest-lock*))"
+            echo "Last commit: $(date -ud @$(git log -1 --format="%ct" manifest-lock.*))"
             # Number of minutes to check
             n=120
             current_time=$(date +%s)
             minutes_ago=$(( current_time - ( 60 * n ) ))
-            last_log=$(git log -1 --date=unix --format="%cd" manifest-lock*)
+            last_log=$(git log -1 --format="%ct" manifest-lock.*)
+            cd ../../
             # Check if git log was run within the last n minutes
             if (( last_log > minutes_ago )); then
                 echo "Last log < $n minutes; implementing --with-cosa-overrides"
