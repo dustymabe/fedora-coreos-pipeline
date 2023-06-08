@@ -230,7 +230,8 @@ lock(resource: "build-${params.STREAM}") {
 
         def overrides_fetch_param = ""
         def recent_commits_to_lockfiles = shwrapRc('''
-            echo "Last commit: $(date -ud @$(git log -1 --follow manifest-lock* --format="%ct"))"
+            cd ./src/config/
+            echo "Last commit: $(date -ud @$(git log -1 --format="%ct" --follow manifest-lock*))"
             # Number of minutes to check
             n=120
             current_time=$(date +%s)
