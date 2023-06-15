@@ -242,7 +242,6 @@ lock(resource: "build-${params.STREAM}") {
             # Check if git log was run within the last n minutes
             if (( last_log > minutes_ago )); then
                 echo "Last log < $n minutes; implementing --with-cosa-overrides"
-                python3 /usr/lib/coreos-assembler/download-overrides.py
                 exit 0
             else
                 exit 1
@@ -253,6 +252,7 @@ lock(resource: "build-${params.STREAM}") {
         stage('Fetch') {
             // Dont run this for production builds
             if (recent_commits_to_lockfiles() == 0 && stream_info.type != "production" ) {
+                shwrap("python3 /usr/lib/coreos-assembler/download-overrides.py")
                 overrides_fetch_param = "--with-cosa-overrides"
             }
             shwrap("cosa fetch ${overrides_fetch_param} ${strict_build_param}")            
