@@ -252,7 +252,7 @@ lock(resource: "build-${params.STREAM}") {
         // fetch from repos for the current build
         stage('Fetch') {
             // Dont run this for production builds
-            if (recent_commits_to_lockfiles == 0 && stream_info.type != "production" ) {
+            if (recent_commits_to_lockfiles() == 0 && stream_info.type != "production" ) {
                 overrides_fetch_param = "--with-cosa-overrides"
             }
             shwrap("cosa fetch ${overrides_fetch_param} ${strict_build_param}")            
