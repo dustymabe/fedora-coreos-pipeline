@@ -242,6 +242,7 @@ lock(resource: "build-${params.STREAM}") {
             # Check if git log was run within the last n minutes
             if (( last_log > minutes_ago )); then
                 echo "Last log < $n minutes; implementing --with-cosa-overrides"
+                python3 download-overrides.py
                 exit 0
             else
                 exit 1
