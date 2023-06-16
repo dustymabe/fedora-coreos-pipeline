@@ -124,14 +124,13 @@ if (params.WAIT_FOR_RELEASE_JOB) {
 def recent_commits_to_lockfiles() {
     shwrapRc('''
     # Temporary assignment to a particular file:
-    cd ./src/config/
-    echo "Last commit: $(date -ud @$(git log -1 --format="%ct" manifest-lock.*))"
+    last_log=$(git log -C ./src/config/ -1 --format="%ct" manifest-lock.*)
+    [ -z "$last_log" ] && exit 1 # no lockfiles exist
+    echo "Last commit: $(date -ud @$last_log)"
     # Number of minutes to check
     n=120
     current_time=$(date +%s)
     minutes_ago=$(( current_time - ( 60 * n ) ))
-    last_log=$(git log -1 --format="%ct" manifest-lock.*)
-    cd ../../
     # Check if git log was run within the last n minutes
     if (( last_log > minutes_ago )); then
         echo "Last log < $n minutes; implementing --with-cosa-overrides"
