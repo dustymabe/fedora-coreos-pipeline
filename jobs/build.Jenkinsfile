@@ -123,11 +123,11 @@ if (params.WAIT_FOR_RELEASE_JOB) {
 
 def recent_commits_to_lockfiles() {
     shwrapRc('''
-    # Temporary assignment to a particular file:
     git -C ./src/config/ fetch https://github.com/dustymabe/fedora-coreos-config.git rawhide
     git -C ./src/config/ -c advice.detachedHead=false checkout FETCH_HEAD
+    [ -z "$(ls manifest-lock.* 2>/dev/null)" ] && exit 1 # no lockfiles exist
+    # Temporary assignment to a particular file:
     last_log=$(git -C ./src/config/ log -1 --format="%ct" manifest-lock.*)
-    [ -z "$last_log" ] && exit 1 # no lockfiles exist
     echo "Last commit: $(date -ud @$last_log)"
     # Number of minutes to check
     n=2880
