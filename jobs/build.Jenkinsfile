@@ -124,11 +124,13 @@ if (params.WAIT_FOR_RELEASE_JOB) {
 def recent_commits_to_lockfiles() {
     shwrapRc('''
     # Temporary assignment to a particular file:
+    git -C ./src/config/ fetch https://github.com/dustymabe/fedora-coreos-config.git rawhide
+    git -C ./src/config/ checkout FETCH_HEAD
     last_log=$(git log -C ./src/config/ -1 --format="%ct" manifest-lock.*)
     [ -z "$last_log" ] && exit 1 # no lockfiles exist
     echo "Last commit: $(date -ud @$last_log)"
     # Number of minutes to check
-    n=120
+    n=2880
     current_time=$(date +%s)
     minutes_ago=$(( current_time - ( 60 * n ) ))
     # Check if git log was run within the last n minutes
