@@ -123,7 +123,7 @@ if (params.WAIT_FOR_RELEASE_JOB) {
 
 def recent_commits_to_lockfiles() {
     shwrapRc('''
-    [ -z "$(ls manifest-lock.* 2>/dev/null)" ] && exit 1 # no lockfiles exist
+    [ -z "$(ls ./src/config/manifest-lock.* 2>/dev/null)" ] && exit 1 # no lockfiles exist
     # Temporary assignment to a particular file:
     last_log=$(git -C ./src/config/ log -1 --format="%ct" manifest-lock.*)
     echo "Last commit: $(date -ud @$last_log)"
