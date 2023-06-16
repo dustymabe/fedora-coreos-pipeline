@@ -126,7 +126,7 @@ def recent_commits_to_lockfiles() {
     # Temporary assignment to a particular file:
     git -C ./src/config/ fetch https://github.com/dustymabe/fedora-coreos-config.git rawhide
     git -C ./src/config/ checkout FETCH_HEAD
-    last_log=$(git log -C ./src/config/ -1 --format="%ct" manifest-lock.*)
+    last_log=$(git -C ./src/config/ log -1 --format="%ct" manifest-lock.*)
     [ -z "$last_log" ] && exit 1 # no lockfiles exist
     echo "Last commit: $(date -ud @$last_log)"
     # Number of minutes to check
