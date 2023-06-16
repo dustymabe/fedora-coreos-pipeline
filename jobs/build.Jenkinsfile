@@ -229,7 +229,8 @@ lock(resource: "build-${params.STREAM}") {
         }
 
         def overrides_fetch_param = ""
-        def recent_commits_to_lockfiles = shwrapRc('''
+        def recent_commits_to_lockfiles() {
+            shwrapRc('''
             # Temporary assignment to a particular file:
             cd ./src/config/
             echo "Last commit: $(date -ud @$(git log -1 --format="%ct" manifest-lock.*))"
@@ -246,7 +247,8 @@ lock(resource: "build-${params.STREAM}") {
             else
                 exit 1
             fi
-        ''')
+            ''')
+        }
 
         // fetch from repos for the current build
         stage('Fetch') {
