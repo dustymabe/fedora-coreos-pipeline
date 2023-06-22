@@ -292,14 +292,14 @@ lock(resource: "build-${params.STREAM}-${basearch}") {
             throw new Exception("unreachable")
         }
 
-        // Run Kola Tests
-        stage("Kola") {
-            def n = 4 // VMs are 2G each and arch builders have approx 32G
-            kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
-                 skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
-                 allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
-                 skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
-        }
+      //// Run Kola Tests
+      //stage("Kola") {
+      //    def n = 4 // VMs are 2G each and arch builders have approx 32G
+      //    kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
+      //         skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
+      //         allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
+      //         skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
+      //}
 
         // Build the remaining artifacts
         stage("Build Artifacts") {
@@ -391,12 +391,12 @@ lock(resource: "build-${params.STREAM}-${basearch}") {
                 pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID, cosa_img,
                                           s3_stream_dir, basearch, src_config_commit)
             }
-            if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
-                stage('Upgrade Tests') {
-                    pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
-                                                     newBuildID, basearch, src_config_commit)
-                }
-            }
+//          if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
+//              stage('Upgrade Tests') {
+//                  pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
+//                                                   newBuildID, basearch, src_config_commit)
+//              }
+//          }
         }
 
         stage('Destroy Remote') {

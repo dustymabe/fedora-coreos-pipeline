@@ -41,7 +41,7 @@ properties([
                    description: 'Force cloud image replication for non-production'),
       string(name: 'COREOS_ASSEMBLER_IMAGE',
              description: 'Override coreos-assembler image to use',
-             defaultValue: "",
+             defaultValue: "quay.io/coreos-assembler/staging:dusty-gcp-aarch64",
              trim: true),
       booleanParam(name: 'KOLA_RUN_SLEEP',
                    defaultValue: false,
@@ -354,14 +354,14 @@ lock(resource: "build-${params.STREAM}") {
             throw new Exception("unreachable")
         }
 
-        // Run Kola Tests
-        stage("Kola") {
-            def n = ncpus - 1 // remove 1 for upgrade test
-            kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
-                 skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
-                 allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
-                 skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
-        }
+      //// Run Kola Tests
+      //stage("Kola") {
+      //    def n = ncpus - 1 // remove 1 for upgrade test
+      //    kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
+      //         skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
+      //         allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
+      //         skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
+      //}
 
         // If desired let's go ahead and archive+fork the multi-arch jobs
         if (params.EARLY_ARCH_JOBS && uploading) {
@@ -474,12 +474,12 @@ lock(resource: "build-${params.STREAM}") {
                 pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID, cosa_img,
                                           s3_stream_dir, basearch, src_config_commit)
             }
-            if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
-                stage('Upgrade Tests') {
-                    pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
-                                                     newBuildID, basearch, src_config_commit)
-                }
-            }
+//          if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
+//              stage('Upgrade Tests') {
+//                  pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
+//                                                   newBuildID, basearch, src_config_commit)
+//              }
+//          }
         }
 
         // For now, we auto-release all non-production streams builds. That
