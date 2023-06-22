@@ -174,7 +174,7 @@ lock(resource: "release-${params.STREAM}", extra: locks) {
             // in the image family and deprecate all others.
             // `ore gcloud promote-image` does this for us.
             if ((meta.gcp?.image) && (meta.gcp?.family) &&
-                        (stream_info.type == 'production')) {
+                        (stream_info.type != 'production')) {
                 tryWithCredentials([file(variable: 'GCP_IMAGE_UPLOAD_CONFIG',
                                          credentialsId: 'gcp-image-upload-config')]) {
                     stage("GCP ${basearch}: Image Promotion") {
