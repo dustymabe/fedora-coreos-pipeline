@@ -74,6 +74,7 @@ cosaPod(memory: "512Mi", kvm: false,
             def gcp_project = shwrapCapture("jq -r .project_id \${GCP_KOLA_TESTS_CONFIG}")
             def parallelruns = [:]
 
+            if (params.ARCH == "x86_64") {
             parallelruns['Kola:Full'] = {
                 kola(cosaDir: env.WORKSPACE, parallel: 5,
                     build: params.VERSION, arch: params.ARCH,
@@ -83,7 +84,6 @@ cosaPod(memory: "512Mi", kvm: false,
                         --gcp-json-key=\${GCP_KOLA_TESTS_CONFIG} \
                         --gcp-project=${gcp_project}""")
             }
-            if (params.ARCH == "x86_64") {
                 parallelruns['Kola:Confidential'] = {
                     def tests = params.KOLA_TESTS
                     if (tests == "") {
@@ -113,7 +113,7 @@ cosaPod(memory: "512Mi", kvm: false,
                 shwrap("""
                 ore gcloud gc --debug        \
                     --project=${gcp_project} \
-                    --gcp-json-key=\${GCP_KOLA_TESTS_CONFIG}
+                    --json-key=\${GCP_KOLA_TESTS_CONFIG}
                 """)
             }
         }
