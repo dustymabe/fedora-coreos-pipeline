@@ -164,6 +164,10 @@ lock(resource: "build-${params.STREAM}") {
                                                  newBuildID, basearch, src_config_commit)
             }
         }
+
+        // If we didn't do an early archive and start multi-arch
+        // jobs let's go ahead and do those pieces now
+        run_multiarch_jobs(additional_arches, src_config_commit, newBuildID, cosa_img, false)
         currentBuild.result = 'SUCCESS'
 
 } catch (e) {
@@ -205,3 +209,23 @@ lock(resource: "build-${params.STREAM}") {
     }
 }}}} // finally, cosaPod, timeout, and locks finish here
 
+def run_multiarch_jobs(arches, src_commit, version, cosa_img, wait) {
+    stage('Fork Multi-Arch Builds') {
+        parallel arches.collectEntries{arch -> [arch, {
+            // We pass in FORCE=true here since if we got this far we know
+            // we want to do a build even if the code tells us that there
+            // are no apparent changes since the previous commit.
+            build job: 'build-tests-arch', wait: wait, parameters: [
+                booleanParam(name: 'FORCE', value: true),
+                booleanParam(name: 'ALLOW_KOLA_UPGRADE_FAILURE', value: params.ALLOW_KOLA_UPGRADE_FAILURE),
+                string(name: 'SRC_CONFIG_COMMIT', value: src_commit),
+                string(name: 'COREOS_ASSEMBLER_IMAGE', value: cosa_img),
+                string(name: 'STREAM', value: params.STREAM),
+                string(name: 'VERSION', value: version),
+                string(name: 'ARCH', value: arch),
+                string(name: 'PIPECFG_HOTFIX_REPO', value: params.PIPECFG_HOTFIX_REPO),
+                string(name: 'PIPECFG_HOTFIX_REF', value: params.PIPECFG_HOTFIX_REF)
+            ]
+        }]}
+    }
+}
