@@ -228,7 +228,7 @@ def run_multiarch_jobs(arches, src_commit, version, cosa_img, wait) {
             // We pass in FORCE=true here since if we got this far we know
             // we want to do a build even if the code tells us that there
             // are no apparent changes since the previous commit.
-            build job: 'build-tests-arch', wait: wait, parameters: [
+            build job: 'build-arch-tests', wait: wait, parameters: [
                 booleanParam(name: 'FORCE', value: true),
                 booleanParam(name: 'ALLOW_KOLA_UPGRADE_FAILURE', value: params.ALLOW_KOLA_UPGRADE_FAILURE),
                 string(name: 'SRC_CONFIG_COMMIT', value: src_commit),
