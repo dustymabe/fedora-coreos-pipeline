@@ -167,16 +167,16 @@ lock(resource: "build-${params.STREAM}") {
         }
 
 
-//      stage('Cloud Tests') {
-//          pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID,
-//                                    cosa_img, basearch, src_config_commit)
-//      }
-//      if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
-//          stage('Upgrade Tests') {
-//              pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
-//                                               newBuildID, basearch, src_config_commit)
-//          }
-//      }
+        stage('Cloud Tests') {
+            pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID,
+                                      cosa_img, basearch, src_config_commit)
+        }
+        if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
+            stage('Upgrade Tests') {
+                pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, cosa_img,
+                                                 newBuildID, basearch, src_config_commit)
+            }
+        }
 
         // If we didn't do an early archive and start multi-arch
         // jobs let's go ahead and do those pieces now
