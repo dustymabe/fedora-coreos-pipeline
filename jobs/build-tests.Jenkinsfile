@@ -175,7 +175,6 @@ lock(resource: "build-${params.STREAM}") {
             stage('Upgrade Tests') {
                     pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, newBuildID,
                                                      cosa_img, basearch, src_config_commit)
-                }
             }
         }
 
