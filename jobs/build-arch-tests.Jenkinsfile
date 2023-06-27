@@ -136,6 +136,19 @@ lock(resource: "build-${params.STREAM}-${basearch}") {
         def ref = pipeutils.get_source_config_ref_for_stream(pipecfg, params.STREAM)
         def src_config_commit = shwrapCapture("git ls-remote ${pipecfg.source_config.url} refs/heads/${ref} | cut -d \$'\t' -f 1")
 
+        stage('Fetch Metadata') {
+            withCredentials([file(variable: 'AWS_CONFIG_FILE',
+                                  credentialsId: 'aws-build-upload-config')]) {
+                def ref = pipeutils.get_source_config_ref_for_stream(pipecfg, params.STREAM)
+                def variant = stream_info.variant ? "--variant ${stream_info.variant}" : ""
+                shwrap("""
+                cosa init --branch ${ref} ${commitopt} ${variant} ${pipecfg.source_config.url}
+                cosa buildfetch --build=${params.VERSION} \
+                    --arch=${basearch} --url=s3://${s3_stream_dir}/builds
+                """)
+            }
+        }
+
 
             stage('Cloud Tests') {
                 pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID,
