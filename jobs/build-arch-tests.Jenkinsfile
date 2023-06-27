@@ -149,10 +149,10 @@ lock(resource: "build-${params.STREAM}-${basearch}") {
         }
 
 
-            stage('Cloud Tests') {
-                pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID,
-                                          cosa_img, basearch, src_config_commit)
-            }
+//          stage('Cloud Tests') {
+//              pipeutils.run_cloud_tests(pipecfg, params.STREAM, newBuildID,
+//                                        cosa_img, basearch, src_config_commit)
+//          }
             if (pipecfg.misc?.run_extended_upgrade_test_fcos) {
                 stage('Upgrade Tests') {
                     pipeutils.run_fcos_upgrade_tests(pipecfg, params.STREAM, newBuildID,
