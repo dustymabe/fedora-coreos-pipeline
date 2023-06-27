@@ -159,7 +159,7 @@ lock(resource: "build-${params.STREAM}") {
                                   credentialsId: 'aws-build-upload-config')]) {
                 def variant = stream_info.variant ? "--variant ${stream_info.variant}" : ""
                 shwrap("""
-                cosa init --branch ${ref} ${commitopt} ${variant} ${pipecfg.source_config.url}
+                cosa init --branch ${ref} ${variant} ${pipecfg.source_config.url}
                 cosa buildfetch --build=${params.VERSION} \
                     --arch=${basearch} --url=s3://${s3_stream_dir}/builds
                 """)
