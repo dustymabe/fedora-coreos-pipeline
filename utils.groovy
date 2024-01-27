@@ -451,7 +451,7 @@ def build_artifacts(pipecfg, stream, basearch) {
     }
 
     // Execute!
-    utils.runParallel(parallelruns, 1)
+    utils.runParallel(parallelruns, maxRuns)
 }
 
 def get_registry_repos(pipecfg, stream, version) {
