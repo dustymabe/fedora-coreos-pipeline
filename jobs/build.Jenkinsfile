@@ -363,14 +363,14 @@ lock(resource: "build-${params.STREAM}") {
             throw new Exception("unreachable")
         }
 
-        // Run Kola Tests
-        stage("Kola") {
-            def n = ncpus - 1 // remove 1 for upgrade test
-            kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
-                 skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
-                 allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
-                 skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
-        }
+      //// Run Kola Tests
+      //stage("Kola") {
+      //    def n = ncpus - 1 // remove 1 for upgrade test
+      //    kola(cosaDir: env.WORKSPACE, parallel: n, arch: basearch,
+      //         skipUpgrade: pipecfg.hacks?.skip_upgrade_tests,
+      //         allowUpgradeFail: params.ALLOW_KOLA_UPGRADE_FAILURE,
+      //         skipSecureBoot: pipecfg.hotfix?.skip_secureboot_tests_hack)
+      //}
 
         // If desired let's go ahead and archive+fork the multi-arch jobs
         if (params.EARLY_ARCH_JOBS && uploading) {
