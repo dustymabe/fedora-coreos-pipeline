@@ -795,7 +795,7 @@ def signImages(stream, version, basearch, s3_stream_dir, verify_only=false) {
         robosignatory --s3 ${s3_stream_dir}/builds \
         --aws-config-file \${AWS_BUILD_UPLOAD_CONFIG} \
         --extra-fedmsg-keys stream=${stream} \
-        --images ${verify_arg} --gpgkeypath /etc/pki/rpm-gpg \
+        --images ${verify_arg} \
         --fedmsg-conf \${FEDORA_MESSAGING_CONF}
     """)
 }
